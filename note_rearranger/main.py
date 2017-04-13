@@ -184,15 +184,21 @@ class RearrangerDialog(QDialog):
         self.fillRows()
 
     def fillRows(self):
-        self.table.setRowCount(100)
-        for row in range(100):
-            for column in range(3):
-                self.table.setItem(
-                    row,column,QTableWidgetItem("test" + str(column) + str(row)))
+        cids = self.browser.selectedCards()
+        self.table.setRowCount(len(cids))
+        print cids
+        for row, cid in enumerate(cids):
+            c = self.browser.col.getCard(cid)
+            n = c.note()
+            nid = n.id
+            txt = self.browser.model.formatQA(n.fields[self.browser.col.models.sortIdx(n.model())])
+            data = [str(nid), txt, "null"]
+            for col, val in enumerate(data):
+                self.table.setItem(row,col,QTableWidgetItem(val))
 
     def onAccept(self):
         res = []
-        for row in range(100):
+        for row in range(self.table.rowCount()):
             item = self.table.item(row, 0)
             if item:
                 res.append(item.text())
