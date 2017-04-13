@@ -1,0 +1,13 @@
+*.pyo
+*.pyc
+*.sublime-project
+*.sublime-workspace
+.hidden
+.directory
+note_rearranger/forms
+tools/test.py
+docs/todo.md
+docs/description.html
+note-rearranger-*.zip
+.gitold
+research
