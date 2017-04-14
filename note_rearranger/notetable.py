@@ -30,11 +30,6 @@ class NoteTable(QTableWidget):
 
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
-        hh = self.horizontalHeader()
-        hh.setStretchLastSection(True)
-        hh.setResizeMode(QHeaderView.Interactive)
-        hh.setCascadingSectionResizes(False)
-
 
     def dropEvent(self, event):
         if event.source() == self and (event.dropAction() == Qt.MoveAction 

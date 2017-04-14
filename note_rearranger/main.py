@@ -12,7 +12,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 from aqt.qt import *
 
 from aqt.browser import Browser
-from aqt.utils import tooltip
+from aqt.utils import saveHeader, restoreHeader
 
 from anki.hooks import addHook, wrap
 
@@ -36,17 +36,67 @@ class RearrangerDialog(QDialog):
         self.f.buttonBox.rejected.connect(self.onReject)
         self.fillTable()
         self.table.cellClicked.connect(self.onCellClicked)
+        self.setupHeaders()
 
         # TODO: handle mw.reset events (especially note deletion)
 
+    def setupHeaders(self):
+        """Restore and setup headers"""
+        hh = self.table.horizontalHeader()
+        restoreHeader(hh, "rearranger")
+        hh.setHighlightSections(False)
+        hh.setMinimumSectionSize(50)
+        hh.setDefaultSectionSize(100)
+        hh.setResizeMode(QHeaderView.Interactive)
+        hh.setStretchLastSection(True)
+        hh.resizeSection(hh.logicalIndex(0), 120)
+        hh.resizeSection(hh.logicalIndex(1), 240)
+        hh.setMovable(True)
 
-    def reject(self):
-        """Notify browser of close event"""
-        self.browser._rearranger = None
-        super(RearrangerDialog, self).reject()
+    def fillTable(self):
+        """Fill table rows with data"""
+        model = self.browser.model
+        t = self.table
+        data = []
+        notes = []
+        nids = []
+
+        # either get selected cards or entire view
+        sel = self.browser.selectedCards()
+        if not sel or len(sel) < 2:
+            sel = model.cards
+
+        # sort and eliminate duplicates
+        for row, cid in enumerate(sel):
+            c = self.browser.col.getCard(cid)
+            nid = c.note().id
+            if nid not in nids:
+                notes.append((nid, row))
+                nids.append(nid)
+        notes.sort()
+
+        # get browser model data for rows
+        for idx, (nid, row) in enumerate(notes):
+            data.append([str(nid)])
+            for col, val in enumerate(model.activeCols):
+                index = model.index(row, col)
+                # We suppose data are strings
+                data[idx].append(model.data(index, Qt.DisplayRole))
+
+        coldict = {key: title for key, title in self.browser.columns}
+        headers = [coldict[key] for key in model.activeCols]
+
+        # set table data
+        t.setColumnCount(len(model.activeCols) + 1)
+        t.setHorizontalHeaderLabels(["Note ID"] + headers)
+        t.setRowCount(len(data))
+        for row, columns in enumerate(data):
+            for col, value in enumerate(columns):
+                t.setItem(row,col,QTableWidgetItem(value))
 
 
     def focusNid(self, nid):
+        """Find and select row by note ID"""
         cell = self.table.findItems(nid, Qt.MatchFixedString)
         if cell:
             self.table.setCurrentItem(cell[0])
@@ -68,47 +118,24 @@ class RearrangerDialog(QDialog):
         if cid:
             self.browser.focusCid(cid)
 
-
-    def fillTable(self):
-        model = self.browser.model
-        t = self.table
-        data = []
-        notes = []
-        nids = []
-
-        # sort and eliminate duplicates
-        for row, cid in enumerate(model.cards):
-            c = self.browser.col.getCard(cid)
-            nid = c.note().id
-            if nid not in nids:
-                notes.append((nid, row))
-                nids.append(nid)
-
-        notes.sort()
-
-        # get browser model data for rows
-        for idx, (nid, row) in enumerate(notes):
-            data.append([str(nid)])
-            for col, val in enumerate(model.activeCols):
-                index = model.index(row, col)
-                # We suppose data are strings
-                data[idx].append(model.data(index, Qt.DisplayRole))
-
-
-
-        # set table data
-        t.setColumnCount(len(model.activeCols) + 1)
-        t.setHorizontalHeaderLabels(["Note ID"] + model.activeCols)
-        t.setRowCount(len(data))
-        for row, columns in enumerate(data):
-            for col, value in enumerate(columns):
-                t.setItem(row,col,QTableWidgetItem(value))
-
+    def reject(self):
+        """Notify browser of close event"""
+        self.browser._rearranger = None
+        super(RearrangerDialog, self).reject()
 
     def onAccept(self):
+        saveHeader(self.table.horizontalHeader(), "rearranger")
         res = []
+        # find Note ID column
+        cols = self.table.columnCount()
+        for idx in range(cols):
+            header = self.table.horizontalHeaderItem(idx).text()
+            if header == "Note ID":
+                col = idx
+                break
+
         for row in range(self.table.rowCount()):
-            item = self.table.item(row, 0)
+            item = self.table.item(row, col)
             if item:
                 res.append(item.text())
             else:
@@ -139,8 +166,6 @@ def onRearrange(self):
     if self._rearranger:
         self._rearranger.show()
         return
-    if len(self.model.cards) >= 1000:
-        tooltip("Loading data", parent=self.mw)
     self._rearranger = RearrangerDialog(self)
     self._rearranger.show()
 
