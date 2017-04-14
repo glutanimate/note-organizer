@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'designer/organizer.ui'
 #
-# Created: Fri Apr 14 14:31:32 2017
+# Created: Fri Apr 14 14:36:03 2017
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -33,5 +33,5 @@ class Ui_Dialog(object):
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(QtGui.QApplication.translate("Dialog", "Organize Notes", None, QtGui.QApplication.UnicodeUTF8))
+        Dialog.setWindowTitle(QtGui.QApplication.translate("Dialog", "Reorganize Notes", None, QtGui.QApplication.UnicodeUTF8))
 

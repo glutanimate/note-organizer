@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 """
-This file is part of the Note Rearranger add-on for Anki
+This file is part of the Note Organizer add-on for Anki
 
 Main Module, hooks add-on methods into Anki
 
-Copyright: Glutanimate 2017
+Copyright: (c) Glutanimate 2017
 License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.html
 """
 
@@ -238,12 +238,12 @@ def onRearrange(self):
 
 def setupMenu(self):
     """Setup menu entries and hotkeys"""
-    self.menRrng = QMenu(_("&Rearranger"))
+    self.menRrng = QMenu(_("&Organizer"))
     action = self.menuBar().insertMenu(
                 self.mw.form.menuTools.menuAction(), self.menRrng)
     menu = self.menRrng
     menu.addSeparator()
-    a = menu.addAction('Rearrange Notes...')
+    a = menu.addAction('Reorganize Notes...')
     a.setShortcut(QKeySequence("Ctrl+R"))
     a.triggered.connect(self.onRearrange)
 

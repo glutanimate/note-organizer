@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Anki Add-on: Note Rearranger
+Anki Add-on: Note Organizer
 
 Entry point for the add-on into Anki
 
@@ -11,4 +11,4 @@ Copyright: (c) Glutanimate 2017
 License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.html
 """ 
 
-import note_rearranger.main
+import note_organizer.main

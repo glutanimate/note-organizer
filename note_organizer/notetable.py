@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 """
-This file is part of the Note Rearranger add-on for Anki
+This file is part of the Note Organizer add-on for Anki
 
 Note table widget
 
-Copyright: Glutanimate 2017
+Copyright: (c) Glutanimate 2017
 License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.html
 """
 
