@@ -1,8 +1,8 @@
 # builds zip file for AnkiWeb (among other things)
 
 VERSION = `git describe HEAD --tags --abbrev=0`
-ADDON = "note-rearranger"
-ADDONDIR = "note_rearranger"
+ADDON = "note-organizer"
+ADDONDIR = "note_organizer"
 
 all: ui zip
 

@@ -16,29 +16,30 @@ from aqt.utils import saveHeader, restoreHeader
 
 from anki.hooks import addHook, wrap
 
-from .forms import rearranger
+from .forms import organizer
 from .notetable import NoteTable
 
 HOTKEY_INSERT = "Ctrl+N"
 HOTKEY_CUT = "Ctrl+x"
 HOTKEY_PASTE = "Ctrl+v"
 
-class RearrangerDialog(QDialog):
+class Organizer(QDialog):
     """Main dialog"""
     def __init__(self, browser):
-        super(RearrangerDialog, self).__init__(parent=browser)
+        super(Organizer, self).__init__(parent=browser)
         self.browser = browser
         self.mw = browser.mw
 
         self.context = None
 
-        self.f = rearranger.Ui_Dialog()
+        self.f = organizer.Ui_Dialog()
         self.f.setupUi(self)
         self.table = NoteTable(self)
         self.f.tableLayout.addWidget(self.table)
         self.fillTable()
         self.setupHeaders()
         self.setupEvents()
+        self.table.setFocus()
 
 
         # TODO: handle mw.reset events (especially note deletion)
@@ -61,7 +62,7 @@ class RearrangerDialog(QDialog):
     def setupHeaders(self):
         """Restore and setup headers"""
         hh = self.table.horizontalHeader()
-        restoreHeader(hh, "rearranger")
+        restoreHeader(hh, "organizer")
         hh.setHighlightSections(False)
         hh.setMinimumSectionSize(50)
         hh.setDefaultSectionSize(100)
@@ -125,6 +126,7 @@ class RearrangerDialog(QDialog):
 
 
     def onRowContext(self, pos):
+        """Custom context menu for the table"""
         # need to map to viewport due to QAbstractScrollArea
         gpos = self.table.viewport().mapToGlobal(pos)
         m = QMenu()
@@ -141,20 +143,21 @@ class RearrangerDialog(QDialog):
         sel = self.table.selectionModel().selectedRows()
         if not sel:
             return False
-        last = sel[-1]
-        row = last.row()
+        row = sel[-1].row()
         col = self.getNidColumn()
         self.table.insertRow(row)
         self.table.setItem(row,0,QTableWidgetItem("Empty new note"))
         print "insert"
 
     def onCutRow(self):
-        self.context = "cut"
+        self.context = [1]
         print "cut"
 
     def onPasteRow(self):
-        self.context = None
+        if not self.context:
+            return
         print "pasted"
+        self.context = None
 
     def onCellClicked(self, row, col):
         """Sync row change to Browser"""
@@ -188,11 +191,11 @@ class RearrangerDialog(QDialog):
 
     def reject(self):
         """Notify browser of close event"""
-        self.browser._rearranger = None
-        super(RearrangerDialog, self).reject()
+        self.browser._organizer = None
+        super(Organizer, self).reject()
 
     def onAccept(self):
-        saveHeader(self.table.horizontalHeader(), "rearranger")
+        saveHeader(self.table.horizontalHeader(), "organizer")
         
         res = []
         col = self.getNidColumn()
@@ -214,23 +217,23 @@ class RearrangerDialog(QDialog):
         
 def onBrowserRowChanged(self, current, previous):
     """Sync row position to Rearranger"""
-    if not self._rearranger:
+    if not self._organizer:
         return
     nid = str(self.card.nid)
-    self._rearranger.focusNid(nid)
+    self._organizer.focusNid(nid)
 
 def onBrowserClose(self, evt):
     """Close with browser"""
-    if self._rearranger:
-        self._rearranger.close()
+    if self._organizer:
+        self._organizer.close()
 
 def onRearrange(self):
     """Invoke Rearranger window"""
-    if self._rearranger:
-        self._rearranger.show()
+    if self._organizer:
+        self._organizer.show()
         return
-    self._rearranger = RearrangerDialog(self)
-    self._rearranger.show()
+    self._organizer = Organizer(self)
+    self._organizer.show()
 
 
 def setupMenu(self):
@@ -247,7 +250,7 @@ def setupMenu(self):
 
 # Hooks, etc.:
 
-Browser._rearranger = None
+Browser._organizer = None
 addHook("browser.setupMenus", setupMenu)
 Browser.onRearrange = onRearrange
 Browser.onRowChanged = wrap(Browser.onRowChanged, onBrowserRowChanged, "after")

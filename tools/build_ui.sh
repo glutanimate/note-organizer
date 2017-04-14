@@ -11,7 +11,7 @@ then
     exit
 fi
 
-form_dir="note_rearranger/forms"
+form_dir="note_organizer/forms"
 init="$form_dir/__init__.py"
 
 mkdir -p "$form_dir"
