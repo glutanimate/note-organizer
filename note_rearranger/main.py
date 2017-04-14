@@ -12,7 +12,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 from aqt.qt import *
 
 from aqt.browser import Browser
-from anki.hooks import addHook
+from anki.hooks import addHook, wrap
 
 from .forms import rearranger
 
@@ -20,11 +20,10 @@ from .forms import rearranger
 class NoteTable(QTableWidget):
     """Custom QTableWidget that allows dragging rows"""
     # based on http://stackoverflow.com/a/26311179
-    def __init__(self, dialog, browser):
+    def __init__(self, dialog):
         QTableWidget.__init__(self)
 
         self.dialog = dialog
-        self.browser = browser
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.viewport().setAcceptDrops(True)
@@ -39,7 +38,7 @@ class NoteTable(QTableWidget):
 
         hh = self.horizontalHeader()
         hh.setStretchLastSection(True)
-        hh.setResizeMode(QHeaderView.Stretch)
+        hh.setResizeMode(QHeaderView.Interactive)
         hh.setCascadingSectionResizes(False)
 
 
@@ -160,6 +159,8 @@ class RearrangerDialog(QDialog):
     def __init__(self, browser):
         super(RearrangerDialog, self).__init__(parent=browser)
         self.browser = browser
+        self.mw = browser.mw
+        self.clicked = False
         # load qt-designer form:
         self.f = rearranger.Ui_Dialog()
         self.f.setupUi(self)
@@ -171,8 +172,32 @@ class RearrangerDialog(QDialog):
         self.table.cellClicked.connect(self.onCellClicked)
 
 
+    def reject(self):
+        """Notify browser of close event"""
+        self.browser._rearranger = None
+        super(RearrangerDialog, self).reject()
+
+
+    def focusNid(self, nid):
+        cell = self.table.findItems(nid, Qt.MatchFixedString)
+        if cell:
+            self.table.setCurrentItem(cell[0])
+
+
     def onCellClicked(self, row, col):
-        print row, col
+        self.clicked = True
+        nid = self.table.item(row, 0).text()
+        cids = self.mw.col.db.list(
+                "select id from cards where nid = ? order by ord", nid)
+        cid = None
+        for c in cids:
+            if c in self.browser.model.cards:
+                cid = c
+                break
+        if cid:
+            self.browser.focusCid(cid)
+        self.clicked = False
+
 
     def fillTable(self):
         model = self.browser.model
@@ -186,12 +211,13 @@ class RearrangerDialog(QDialog):
             c = self.browser.col.getCard(cid)
             nid = c.note().id
             if nid not in nids:
-                notes.append((row, nid))
+                notes.append((nid, row))
                 nids.append(nid)
+
         notes.sort()
 
         # get browser model data for rows
-        for idx, (row, nid) in enumerate(notes):
+        for idx, (nid, row) in enumerate(notes):
             data.append([str(nid)])
             for col, val in enumerate(model.activeCols):
                 index = model.index(row, col)
@@ -207,6 +233,7 @@ class RearrangerDialog(QDialog):
             for col, value in enumerate(columns):
                 t.setItem(row,col,QTableWidgetItem(value))
 
+
     def onAccept(self):
         res = []
         for row in range(self.table.rowCount()):
@@ -216,17 +243,30 @@ class RearrangerDialog(QDialog):
             else:
                 res.append(None)
         print res
+        # TODO: Confirmation dialog?
         self.close()
+
 
     def onReject(self):
         self.close()
+
         
+def onBrowserRowChanged(self, current, previous):
+    """Sync row position to Rearranger"""
+    if not self._rearranger:
+        return
+    nid = str(self.card.nid)
+    self._rearranger.focusNid(nid)
+
 
 def onRearrange(self):
-    dialog = RearrangerDialog(self)
-    dialog.show()
+    """Invoke Rearranger window"""
+    self._rearranger = RearrangerDialog(self)
+    self._rearranger.show()
+
 
 def setupMenu(self):
+    """Setup menu entries and hotkeys"""
     self.menRrng = QMenu(_("&Rearranger"))
     action = self.menuBar().insertMenu(
                 self.mw.form.menuTools.menuAction(), self.menRrng)
@@ -236,5 +276,10 @@ def setupMenu(self):
     a.setShortcut(QKeySequence("Ctrl+R"))
     a.triggered.connect(self.onRearrange)
 
+
+# Hooks, etc.:
+
+Browser._rearranger = None
 addHook("browser.setupMenus", setupMenu)
 Browser.onRearrange = onRearrange
+Browser.onRowChanged = wrap(Browser.onRowChanged, onBrowserRowChanged, "after")
