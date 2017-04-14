@@ -9,6 +9,8 @@ Copyright: Glutanimate 2017
 License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.html
 """
 
+from aqt.qt import *
+
 class NoteTable(QTableWidget):
     """Custom QTableWidget with drag-and-drop support"""
     # based on http://stackoverflow.com/a/26311179

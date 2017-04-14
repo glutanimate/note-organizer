@@ -12,6 +12,8 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 from aqt.qt import *
 
 from aqt.browser import Browser
+from aqt.utils import tooltip
+
 from anki.hooks import addHook, wrap
 
 from .forms import rearranger
@@ -35,6 +37,8 @@ class RearrangerDialog(QDialog):
         self.fillTable()
         self.table.cellClicked.connect(self.onCellClicked)
 
+        # TODO: handle mw.reset events (especially note deletion)
+
 
     def reject(self):
         """Notify browser of close event"""
@@ -50,6 +54,9 @@ class RearrangerDialog(QDialog):
 
     def onCellClicked(self, row, col):
         """Sync row change to Browser"""
+        mods = QApplication.keyboardModifiers()
+        if mods & (Qt.ShiftModifier | Qt.ControlModifier):
+            return # nothing to focus when multiple items are selected
         nid = self.table.item(row, 0).text()
         cids = self.mw.col.db.list(
                 "select id from cards where nid = ? order by ord", nid)
@@ -86,7 +93,8 @@ class RearrangerDialog(QDialog):
                 index = model.index(row, col)
                 # We suppose data are strings
                 data[idx].append(model.data(index, Qt.DisplayRole))
-            print data[idx]
+
+
 
         # set table data
         t.setColumnCount(len(model.activeCols) + 1)
@@ -128,6 +136,11 @@ def onBrowserClose(self, evt):
 
 def onRearrange(self):
     """Invoke Rearranger window"""
+    if self._rearranger:
+        self._rearranger.show()
+        return
+    if len(self.model.cards) >= 1000:
+        tooltip("Loading data", parent=self.mw)
     self._rearranger = RearrangerDialog(self)
     self._rearranger.show()
 
