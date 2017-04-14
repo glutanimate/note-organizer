@@ -18,6 +18,8 @@ from .forms import rearranger
 
 
 class NoteTable(QTableWidget):
+    """Custom QTableWidget that allows dragging rows"""
+    # based on http://stackoverflow.com/a/26311179
     def __init__(self, dialog, browser):
         QTableWidget.__init__(self)
 
@@ -36,9 +38,10 @@ class NoteTable(QTableWidget):
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         hh = self.horizontalHeader()
-        hh.setDefaultSectionSize(100)
-        hh.setMinimumSectionSize(100)
         hh.setStretchLastSection(True)
+        hh.setResizeMode(QHeaderView.Stretch)
+        hh.setCascadingSectionResizes(False)
+
 
     def dropEvent(self, event):
         if event.source() == self and (event.dropAction() == Qt.MoveAction 
@@ -48,49 +51,35 @@ class NoteTable(QTableWidget):
                 selRows = self.getSelectedRowsFast()                        
 
                 top = selRows[0]
-                # print 'top is %d'%top
                 dropRow = row
                 if dropRow == -1:
                     dropRow = self.rowCount()
-                # print 'dropRow is %d'%dropRow
                 offset = dropRow - top
-                # print 'offset is %d'%offset
 
                 for i, row in enumerate(selRows):
                     r = row + offset
                     if r > self.rowCount() or r < 0:
                         r = 0
                     self.insertRow(r)
-                    # print 'inserting row at %d'%r
-
 
                 selRows = self.getSelectedRowsFast()
-                # print 'selected rows: %s'%selRows
 
                 top = selRows[0]
-                # print 'top is %d'%top
                 offset = dropRow - top                
-                # print 'offset is %d'%offset
                 for i, row in enumerate(selRows):
                     r = row + offset
                     if r > self.rowCount() or r < 0:
                         r = 0
 
                     for j in range(self.columnCount()):
-                        # print 'source is (%d, %d)'%(row, j)
-                        # print 'item text: %s'%self.item(row,j).text()
                         source = QTableWidgetItem(self.item(row, j))
-                        # print 'dest is (%d, %d)'%(r,j)
                         self.setItem(r, j, source)
-
-                # Why does this NOT need to be here?
-                # for row in reversed(selRows):
-                    # self.removeRow(row)
 
                 event.accept()
 
         else:
             QTableView.dropEvent(event)                
+
 
     def getSelectedRowsFast(self):
         selRows = []
@@ -98,6 +87,7 @@ class NoteTable(QTableWidget):
             if item.row() not in selRows:
                 selRows.append(item.row())
         return selRows
+
 
     def droppingOnItself(self, event, index):
         dropAction = event.dropAction()
@@ -114,6 +104,7 @@ class NoteTable(QTableWidget):
                 child = child.parent()
 
         return False
+
 
     def dropOn(self, event):
         if event.isAccepted():
@@ -135,21 +126,18 @@ class NoteTable(QTableWidget):
                 if dropIndicatorPosition == QAbstractItemView.AboveItem:
                     row = index.row()
                     col = index.column()
-                    # index = index.parent()
                 elif dropIndicatorPosition == QAbstractItemView.BelowItem:
                     row = index.row() + 1
                     col = index.column()
-                    # index = index.parent()
                 else:
                     row = index.row()
                     col = index.column()
 
             if not self.droppingOnItself(event, index):
-                # print 'row is %d'%row
-                # print 'col is %d'%col
                 return True, row, col, index
 
         return False, None, None, None
+
 
     def position(self, pos, rect, index):
         r = QAbstractItemView.OnViewport
@@ -177,24 +165,47 @@ class RearrangerDialog(QDialog):
         self.f.setupUi(self)
         self.table = NoteTable(self, browser)
         self.f.tableLayout.addWidget(self.table)
-        self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(['Note ID', 'Sort Field', 'Back'])
         self.f.buttonBox.accepted.connect(self.onAccept)
         self.f.buttonBox.rejected.connect(self.onReject)
-        self.fillRows()
+        self.fillTable()
+        self.table.cellClicked.connect(self.onCellClicked)
 
-    def fillRows(self):
-        cids = self.browser.selectedCards()
-        self.table.setRowCount(len(cids))
-        print cids
-        for row, cid in enumerate(cids):
+
+    def onCellClicked(self, row, col):
+        print row, col
+
+    def fillTable(self):
+        model = self.browser.model
+        t = self.table
+        data = []
+        notes = []
+        nids = []
+
+        # sort and eliminate duplicates
+        for row, cid in enumerate(model.cards):
             c = self.browser.col.getCard(cid)
-            n = c.note()
-            nid = n.id
-            txt = self.browser.model.formatQA(n.fields[self.browser.col.models.sortIdx(n.model())])
-            data = [str(nid), txt, "null"]
-            for col, val in enumerate(data):
-                self.table.setItem(row,col,QTableWidgetItem(val))
+            nid = c.note().id
+            if nid not in nids:
+                notes.append((row, nid))
+                nids.append(nid)
+        notes.sort()
+
+        # get browser model data for rows
+        for idx, (row, nid) in enumerate(notes):
+            data.append([str(nid)])
+            for col, val in enumerate(model.activeCols):
+                index = model.index(row, col)
+                # We suppose data are strings
+                data[idx].append(model.data(index, Qt.DisplayRole))
+            print data[idx]
+
+        # set table data
+        t.setColumnCount(len(model.activeCols) + 1)
+        t.setHorizontalHeaderLabels(["Note ID"] + model.activeCols)
+        t.setRowCount(len(data))
+        for row, columns in enumerate(data):
+            for col, value in enumerate(columns):
+                t.setItem(row,col,QTableWidgetItem(value))
 
     def onAccept(self):
         res = []
@@ -213,7 +224,7 @@ class RearrangerDialog(QDialog):
 
 def onRearrange(self):
     dialog = RearrangerDialog(self)
-    dialog.exec_()
+    dialog.show()
 
 def setupMenu(self):
     self.menRrng = QMenu(_("&Rearranger"))
