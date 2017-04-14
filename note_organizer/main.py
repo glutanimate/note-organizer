@@ -20,8 +20,15 @@ from .forms import organizer
 from .notetable import NoteTable
 
 HOTKEY_INSERT = "Ctrl+N"
+HOTKEY_REMOVE = "Del"
 HOTKEY_CUT = "Ctrl+x"
 HOTKEY_PASTE = "Ctrl+v"
+
+
+#########
+
+
+EMPTY_NOTE = "Empty note"
 
 class Organizer(QDialog):
     """Main dialog"""
@@ -35,6 +42,7 @@ class Organizer(QDialog):
         self.f = organizer.Ui_Dialog()
         self.f.setupUi(self)
         self.table = NoteTable(self)
+        self.hh = self.table.horizontalHeader()
         self.f.tableLayout.addWidget(self.table)
         self.fillTable()
         self.setupHeaders()
@@ -54,6 +62,8 @@ class Organizer(QDialog):
 
         insCut = QShortcut(QKeySequence(_(HOTKEY_INSERT)), 
                 self.table, activated=self.onInsertNote)
+        delCut = QShortcut(QKeySequence(_(HOTKEY_REMOVE)), 
+                self.table, activated=self.onRemoveNotes)
         cutCut = QShortcut(QKeySequence(_(HOTKEY_CUT)), 
                 self.table, activated=self.onCutRow)
         pasteCut = QShortcut(QKeySequence(_(HOTKEY_PASTE)), 
@@ -61,17 +71,16 @@ class Organizer(QDialog):
 
     def setupHeaders(self):
         """Restore and setup headers"""
-        hh = self.table.horizontalHeader()
-        restoreHeader(hh, "organizer")
-        hh.setHighlightSections(False)
-        hh.setMinimumSectionSize(50)
-        hh.setDefaultSectionSize(100)
-        hh.setResizeMode(QHeaderView.Interactive)
-        hh.setStretchLastSection(True)
-        hh.resizeSection(hh.logicalIndex(0), 120)
-        hh.resizeSection(hh.logicalIndex(1), 240)
-        hh.setMovable(True)
-        hh.setClickable(False)
+        restoreHeader(self.hh, "organizer")
+        self.hh.setHighlightSections(False)
+        self.hh.setMinimumSectionSize(50)
+        self.hh.setDefaultSectionSize(100)
+        self.hh.setResizeMode(QHeaderView.Interactive)
+        self.hh.setStretchLastSection(True)
+        self.hh.resizeSection(self.hh.logicalIndex(0), 120)
+        self.hh.resizeSection(self.hh.logicalIndex(1), 240)
+        self.hh.setMovable(True)
+        self.hh.setClickable(False)
         vh = self.table.verticalHeader()
         vh.setClickable(False)
         vh.setResizeMode(QHeaderView.Fixed)
@@ -130,8 +139,18 @@ class Organizer(QDialog):
         # need to map to viewport due to QAbstractScrollArea
         gpos = self.table.viewport().mapToGlobal(pos)
         m = QMenu()
-        a = m.addAction("Insert Note\t{}".format(HOTKEY_INSERT))
+        
+        a = m.addAction("Insert empty note\t{}".format(HOTKEY_INSERT))
         a.triggered.connect(self.onInsertNote)
+        
+        sel = self.table.selectionModel().selectedRows()
+        if sel:
+            row = sel[-1].row()
+            item = self.table.item(row, 0)
+            if item and item.text() == EMPTY_NOTE:
+                a = m.addAction("Remove empty note(s)\t{}".format(HOTKEY_REMOVE))
+                a.triggered.connect(self.onRemoveNotes)
+
         a = m.addAction("Cut\t{}".format(HOTKEY_CUT))
         a.triggered.connect(self.onCutRow)
         if self.context:
@@ -144,10 +163,23 @@ class Organizer(QDialog):
         if not sel:
             return False
         row = sel[-1].row()
-        col = self.getNidColumn()
         self.table.insertRow(row)
-        self.table.setItem(row,0,QTableWidgetItem("Empty new note"))
+        self.table.setItem(row, 0, QTableWidgetItem(EMPTY_NOTE))
         print "insert"
+
+    def onRemoveNotes(self):
+        selection = self.table.selectionModel().selectedRows()
+        if not selection:
+            return False
+        to_remove = []
+        for sel in selection:
+            row = sel.row()
+            item = self.table.item(row, 0)
+            if not item or not item.text() == EMPTY_NOTE:
+                continue
+            to_remove.append(row)
+        for row in to_remove[::-1]: # in reverse to avoid updating idxs
+            self.table.removeRow(row)
 
     def onCutRow(self):
         self.context = [1]
@@ -178,29 +210,16 @@ class Organizer(QDialog):
         if cid:
             self.browser.focusCid(cid)
 
-    def getNidColumn(self):
-        """Find Note ID column"""
-        col = 0
-        cols = self.table.columnCount()
-        for idx in range(cols):
-            header = self.table.horizontalHeaderItem(idx).text()
-            if header == "Note ID":
-                col = idx
-                break
-        return col
-
     def reject(self):
         """Notify browser of close event"""
         self.browser._organizer = None
+        saveHeader(self.hh, "organizer")
         super(Organizer, self).reject()
 
-    def onAccept(self):
-        saveHeader(self.table.horizontalHeader(), "organizer")
-        
+    def onAccept(self):   
         res = []
-        col = self.getNidColumn()
         for row in range(self.table.rowCount()):
-            item = self.table.item(row, col)
+            item = self.table.item(row, 0)
             if item:
                 res.append(item.text())
             else:
@@ -216,7 +235,7 @@ class Organizer(QDialog):
 
         
 def onBrowserRowChanged(self, current, previous):
-    """Sync row position to Rearranger"""
+    """Sync row position to Organizer"""
     if not self._organizer:
         return
     nid = str(self.card.nid)
@@ -227,8 +246,8 @@ def onBrowserClose(self, evt):
     if self._organizer:
         self._organizer.close()
 
-def onRearrange(self):
-    """Invoke Rearranger window"""
+def onReorganize(self):
+    """Invoke Organizer window"""
     if self._organizer:
         self._organizer.show()
         return
@@ -245,13 +264,13 @@ def setupMenu(self):
     menu.addSeparator()
     a = menu.addAction('Reorganize Notes...')
     a.setShortcut(QKeySequence("Ctrl+R"))
-    a.triggered.connect(self.onRearrange)
+    a.triggered.connect(self.onReorganize)
 
 
 # Hooks, etc.:
 
 Browser._organizer = None
 addHook("browser.setupMenus", setupMenu)
-Browser.onRearrange = onRearrange
+Browser.onReorganize = onReorganize
 Browser.onRowChanged = wrap(Browser.onRowChanged, onBrowserRowChanged, "after")
 Browser.closeEvent = wrap(Browser.closeEvent, onBrowserClose, "before")
