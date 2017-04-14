@@ -52,6 +52,10 @@ class RearrangerDialog(QDialog):
         hh.resizeSection(hh.logicalIndex(0), 120)
         hh.resizeSection(hh.logicalIndex(1), 240)
         hh.setMovable(True)
+        hh.setClickable(False)
+        vh = self.table.verticalHeader()
+        vh.setClickable(False)
+        vh.setResizeMode(QHeaderView.Fixed)
 
     def fillTable(self):
         """Fill table rows with data"""
