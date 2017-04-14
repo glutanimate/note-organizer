@@ -19,6 +19,9 @@ from anki.hooks import addHook, wrap
 from .forms import rearranger
 from .notetable import NoteTable
 
+HOTKEY_INSERT = "Ctrl+N"
+HOTKEY_CUT = "Ctrl+x"
+HOTKEY_PASTE = "Ctrl+v"
 
 class RearrangerDialog(QDialog):
     """Main dialog"""
@@ -35,7 +38,12 @@ class RearrangerDialog(QDialog):
         self.f.tableLayout.addWidget(self.table)
         self.fillTable()
         self.setupHeaders()
+        self.setupEvents()
 
+
+        # TODO: handle mw.reset events (especially note deletion)
+
+    def setupEvents(self):
         self.table.cellClicked.connect(self.onCellClicked)
         self.f.buttonBox.rejected.connect(self.onReject)
         self.f.buttonBox.accepted.connect(self.onAccept)
@@ -43,7 +51,12 @@ class RearrangerDialog(QDialog):
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.onRowContext)
 
-        # TODO: handle mw.reset events (especially note deletion)
+        insCut = QShortcut(QKeySequence(_(HOTKEY_INSERT)), 
+                self.table, activated=self.onInsertNote)
+        cutCut = QShortcut(QKeySequence(_(HOTKEY_CUT)), 
+                self.table, activated=self.onCutRow)
+        pasteCut = QShortcut(QKeySequence(_(HOTKEY_PASTE)), 
+                self.table, activated=self.onPasteRow)
 
     def setupHeaders(self):
         """Restore and setup headers"""
@@ -115,17 +128,19 @@ class RearrangerDialog(QDialog):
         # need to map to viewport due to QAbstractScrollArea
         gpos = self.table.viewport().mapToGlobal(pos)
         m = QMenu()
-        a = m.addAction("Insert Note")
+        a = m.addAction("Insert Note\t{}".format(HOTKEY_INSERT))
         a.triggered.connect(self.onInsertNote)
-        a = m.addAction("Cut")
+        a = m.addAction("Cut\t{}".format(HOTKEY_CUT))
         a.triggered.connect(self.onCutRow)
         if self.context:
-            a = m.addAction("Paste")
+            a = m.addAction("Paste\t{}".format(HOTKEY_PASTE))
             a.triggered.connect(self.onPasteRow)
         m.exec_(gpos)
 
     def onInsertNote(self):
         sel = self.table.selectionModel().selectedRows()
+        if not sel:
+            return False
         last = sel[-1]
         row = last.row()
         col = self.getNidColumn()
@@ -178,8 +193,8 @@ class RearrangerDialog(QDialog):
 
     def onAccept(self):
         saveHeader(self.table.horizontalHeader(), "rearranger")
+        
         res = []
-
         col = self.getNidColumn()
         for row in range(self.table.rowCount()):
             item = self.table.item(row, col)
@@ -188,7 +203,8 @@ class RearrangerDialog(QDialog):
             else:
                 res.append(None)
         print res
-        # TODO: Confirmation dialog?
+        # TODO: Confirmation dialog? ("Full sync necessary")
+        # TODO: Restoration point
         self.close()
 
 
