@@ -86,7 +86,9 @@ class NoteTable(QTableWidget):
         if self.dragDropMode() == QAbstractItemView.InternalMove:
             dropAction = Qt.MoveAction
 
-        if event.source() == self and event.possibleActions() & Qt.MoveAction and dropAction == Qt.MoveAction:
+        if (event.source() == self and 
+                event.possibleActions() & Qt.MoveAction 
+                and dropAction == Qt.MoveAction):
             selectedIndexes = self.selectedIndexes()
             child = index
             while child.isValid() and child != self.rootIndex():

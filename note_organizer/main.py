@@ -21,8 +21,8 @@ from .notetable import NoteTable
 
 HOTKEY_INSERT = "Ctrl+N"
 HOTKEY_REMOVE = "Del"
-HOTKEY_CUT = "Ctrl+x"
-HOTKEY_PASTE = "Ctrl+v"
+HOTKEY_CUT = "Ctrl+X"
+HOTKEY_PASTE = "Ctrl+V"
 
 
 #########
@@ -37,7 +37,7 @@ class Organizer(QDialog):
         self.browser = browser
         self.mw = browser.mw
 
-        self.context = None
+        self._context = None
 
         self.f = organizer.Ui_Dialog()
         self.f.setupUi(self)
@@ -140,6 +140,12 @@ class Organizer(QDialog):
         gpos = self.table.viewport().mapToGlobal(pos)
         m = QMenu()
         
+        a = m.addAction("Cut\t{}".format(HOTKEY_CUT))
+        a.triggered.connect(self.onCutRow)
+        if self._context:
+            a = m.addAction("Paste\t{}".format(HOTKEY_PASTE))
+            a.triggered.connect(self.onPasteRow)
+
         a = m.addAction("Insert empty note\t{}".format(HOTKEY_INSERT))
         a.triggered.connect(self.onInsertNote)
         
@@ -151,29 +157,30 @@ class Organizer(QDialog):
                 a = m.addAction("Remove empty note(s)\t{}".format(HOTKEY_REMOVE))
                 a.triggered.connect(self.onRemoveNotes)
 
-        a = m.addAction("Cut\t{}".format(HOTKEY_CUT))
-        a.triggered.connect(self.onCutRow)
-        if self.context:
-            a = m.addAction("Paste\t{}".format(HOTKEY_PASTE))
-            a.triggered.connect(self.onPasteRow)
         m.exec_(gpos)
 
-    def onInsertNote(self):
+    def getSelectedRows(self):
         sel = self.table.selectionModel().selectedRows()
         if not sel:
-            return False
-        row = sel[-1].row()
+            return None
+        return [i.row() for i in sel]
+
+    def onInsertNote(self):
+        rows = self.getSelectedRows()
+        if not rows:
+            return
+        row = rows[0]
         self.table.insertRow(row)
         self.table.setItem(row, 0, QTableWidgetItem(EMPTY_NOTE))
         print "insert"
 
+
     def onRemoveNotes(self):
-        selection = self.table.selectionModel().selectedRows()
-        if not selection:
-            return False
+        rows = self.getSelectedRows()
+        if not rows:
+            return
         to_remove = []
-        for sel in selection:
-            row = sel.row()
+        for row in rows:
             item = self.table.item(row, 0)
             if not item or not item.text() == EMPTY_NOTE:
                 continue
@@ -181,15 +188,62 @@ class Organizer(QDialog):
         for row in to_remove[::-1]: # in reverse to avoid updating idxs
             self.table.removeRow(row)
 
+
     def onCutRow(self):
-        self.context = [1]
-        print "cut"
+        rows = self.getSelectedRows()
+        if not rows:
+            return
+        self._context = rows
+
 
     def onPasteRow(self):
-        if not self.context:
+        # TODO: in dire need of refactoring
+
+        t = self.table
+        cut = self._context
+
+        if not self._context:
             return
-        print "pasted"
-        self.context = None
+        rows = self.getSelectedRows()
+        if not rows:
+            return
+        
+        new_row = rows[0]
+        if new_row == cut[0] or new_row in range(cut[0], cut[-1]+1):
+            # FIXME: support pasting back into the same range
+            return False
+
+        offset = 0
+        cols = t.columnCount()
+        select = []
+
+        for cut_row in cut[::-1]:
+            t.insertRow(new_row)
+            if new_row < cut_row:
+                offset += 1
+            adj_row = cut_row + offset
+            # print "moving {} (actual: {}) to {}".format(
+            #         cut_row+1, adj_row+1, new_row+1)
+            for col in range(cols):
+                duplicate = QTableWidgetItem(t.item(adj_row, col))
+                t.setItem(new_row, col, duplicate)
+            t.clearSelection()
+
+        for row in cut[::-1]:
+            # print "removing {}".format(row+offset)
+            t.removeRow(row+offset)
+
+        selectionModel = t.selectionModel()
+        if new_row > cut[0]:
+            index1 = t.model().index(new_row-len(cut), 0)
+            index2 = t.model().index(new_row-1, 2)
+        else:
+            index1 = t.model().index(new_row, 0)
+            index2 = t.model().index(new_row+len(cut)-1, 0)
+        itemSelection = QItemSelection(index1, index2)
+        selectionModel.select(itemSelection, QItemSelectionModel.Rows | QItemSelectionModel.Select)
+
+        self._context = None
 
     def onCellClicked(self, row, col):
         """Sync row change to Browser"""
