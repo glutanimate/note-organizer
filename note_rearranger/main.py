@@ -27,16 +27,21 @@ class RearrangerDialog(QDialog):
         self.browser = browser
         self.mw = browser.mw
 
-        # load qt-designer form:
+        self.context = None
+
         self.f = rearranger.Ui_Dialog()
         self.f.setupUi(self)
         self.table = NoteTable(self)
         self.f.tableLayout.addWidget(self.table)
-        self.f.buttonBox.accepted.connect(self.onAccept)
-        self.f.buttonBox.rejected.connect(self.onReject)
         self.fillTable()
-        self.table.cellClicked.connect(self.onCellClicked)
         self.setupHeaders()
+
+        self.table.cellClicked.connect(self.onCellClicked)
+        self.f.buttonBox.rejected.connect(self.onReject)
+        self.f.buttonBox.accepted.connect(self.onAccept)
+
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self.onRowContext)
 
         # TODO: handle mw.reset events (especially note deletion)
 
@@ -106,12 +111,45 @@ class RearrangerDialog(QDialog):
             self.table.setCurrentItem(cell[0])
 
 
+    def onRowContext(self, pos):
+        # need to map to viewport due to QAbstractScrollArea
+        gpos = self.table.viewport().mapToGlobal(pos)
+        m = QMenu()
+        a = m.addAction("Insert Note")
+        a.triggered.connect(self.onInsertNote)
+        a = m.addAction("Cut")
+        a.triggered.connect(self.onCutRow)
+        if self.context:
+            a = m.addAction("Paste")
+            a.triggered.connect(self.onPasteRow)
+        m.exec_(gpos)
+
+    def onInsertNote(self):
+        sel = self.table.selectionModel().selectedRows()
+        last = sel[-1]
+        row = last.row()
+        col = self.getNidColumn()
+        self.table.insertRow(row)
+        self.table.setItem(row,0,QTableWidgetItem("Empty new note"))
+        print "insert"
+
+    def onCutRow(self):
+        self.context = "cut"
+        print "cut"
+
+    def onPasteRow(self):
+        self.context = None
+        print "pasted"
+
     def onCellClicked(self, row, col):
         """Sync row change to Browser"""
         mods = QApplication.keyboardModifiers()
         if mods & (Qt.ShiftModifier | Qt.ControlModifier):
             return # nothing to focus when multiple items are selected
-        nid = self.table.item(row, 0).text()
+        item = self.table.item(row, 0)
+        if not item:
+            return
+        nid = item.text()
         cids = self.mw.col.db.list(
                 "select id from cards where nid = ? order by ord", nid)
         cid = None
@@ -122,6 +160,17 @@ class RearrangerDialog(QDialog):
         if cid:
             self.browser.focusCid(cid)
 
+    def getNidColumn(self):
+        """Find Note ID column"""
+        col = 0
+        cols = self.table.columnCount()
+        for idx in range(cols):
+            header = self.table.horizontalHeaderItem(idx).text()
+            if header == "Note ID":
+                col = idx
+                break
+        return col
+
     def reject(self):
         """Notify browser of close event"""
         self.browser._rearranger = None
@@ -130,14 +179,8 @@ class RearrangerDialog(QDialog):
     def onAccept(self):
         saveHeader(self.table.horizontalHeader(), "rearranger")
         res = []
-        # find Note ID column
-        cols = self.table.columnCount()
-        for idx in range(cols):
-            header = self.table.horizontalHeaderItem(idx).text()
-            if header == "Note ID":
-                col = idx
-                break
 
+        col = self.getNidColumn()
         for row in range(self.table.rowCount()):
             item = self.table.item(row, col)
             if item:

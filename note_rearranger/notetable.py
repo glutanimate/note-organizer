@@ -69,6 +69,9 @@ class NoteTable(QTableWidget):
             QTableView.dropEvent(event)                
 
 
+    def moveRow(self,):
+        pass
+
     def getSelectedRowsFast(self):
         selRows = []
         for item in self.selectedItems():
