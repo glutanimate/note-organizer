@@ -13,7 +13,7 @@ from aqt.qt import *
 
 class NoteTable(QTableWidget):
     """Custom QTableWidget with drag-and-drop support"""
-    # based on http://stackoverflow.com/a/26311179
+    # adapted from http://stackoverflow.com/a/26311179
     def __init__(self, dialog):
         QTableWidget.__init__(self)
 
@@ -30,13 +30,15 @@ class NoteTable(QTableWidget):
 
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
+        self.modified = []
+
 
     def dropEvent(self, event):
         if event.source() == self and (event.dropAction() == Qt.MoveAction 
                         or self.dragDropMode() == QAbstractItemView.InternalMove):
             success, row, col, topIndex = self.dropOn(event)
             if success:             
-                selRows = self.getSelectedRowsFast()                        
+                selRows = self.getSelectedRows()                        
 
                 top = selRows[0]
                 dropRow = row
@@ -50,7 +52,7 @@ class NoteTable(QTableWidget):
                         r = 0
                     self.insertRow(r)
 
-                selRows = self.getSelectedRowsFast()
+                selRows = self.getSelectedRows()
 
                 top = selRows[0]
                 offset = dropRow - top                
@@ -59,12 +61,14 @@ class NoteTable(QTableWidget):
                     if r > self.rowCount() or r < 0:
                         r = 0
 
-                    for j in range(self.columnCount()):
-                        duplicate = QTableWidgetItem(self.item(row, j))
-                        font = duplicate.font()
+                    for col in range(self.columnCount()):
+                        dupe = QTableWidgetItem(self.item(row, col))
+                        font = dupe.font()
                         font.setBold(True)
-                        duplicate.setFont(font)
-                        self.setItem(r, j, duplicate)
+                        dupe.setFont(font)
+                        self.setItem(r, col, dupe)
+                        if col == 0:
+                            self.modified.append(int(dupe.text()))
 
                 event.accept()
 
@@ -72,15 +76,11 @@ class NoteTable(QTableWidget):
             QTableView.dropEvent(event)                
 
 
-    def moveRow(self,):
-        pass
-
-    def getSelectedRowsFast(self):
-        selRows = []
-        for item in self.selectedItems():
-            if item.row() not in selRows:
-                selRows.append(item.row())
-        return selRows
+    def getSelectedRows(self):
+        sel = self.selectionModel().selectedRows()
+        if not sel:
+            return None
+        return [i.row() for i in sel]
 
 
     def droppingOnItself(self, event, index):
