@@ -42,6 +42,7 @@ class Organizer(QDialog):
         self.hh = self.table.horizontalHeader()
         self.f.tableLayout.addWidget(self.table)
         self.fillTable()
+        self.setupDate()
         self.updateDate()
         self.setupHeaders()
         restoreGeom(self, "organizer")
@@ -147,13 +148,22 @@ class Organizer(QDialog):
                 t.setItem(row,col,item)
 
 
+    def setupDate(self):
+        """Set up datetime range"""
+        qtime = QDateTime()
+        qtime.setTime_t(0)
+        self.f.date.setMinimumDateTime(qtime)
+        self.f.date.setMaximumDateTime(QDateTime.currentDateTime())
+
+
     def onCellChanged(self, row, col):
+        """Update datetime display when (0,0) changed"""
         if row == col == 0:
             self.updateDate()
 
 
     def updateDate(self):
-        # TODO: set date bounds to (collection created, today)
+        """Update datetime based on (0,0) value"""
         item = self.table.item(0, 0)
         if not item:
             return False
@@ -164,13 +174,17 @@ class Organizer(QDialog):
         timestamp = nid / 1000
         qtime = QDateTime()
         qtime.setTime_t(timestamp)
-        self.f.dateTimeEdit.setDateTime(qtime)
+        self.f.date.setDateTime(qtime)
 
 
     def getDate(self):
-        qtime = self.f.dateTimeEdit.dateTime()
+        """Get datetime"""
+        qtime = self.f.date.dateTime()
+        if not qtime.isValid():
+            return None
         timestamp = qtime.toTime_t()
         return timestamp * 1000
+
 
     def focusNid(self, nid):
         """Find and select row by note ID"""
@@ -327,6 +341,7 @@ class Organizer(QDialog):
 
 
     def onAccept(self):
+        """Ask for confirmation, then call rearranger"""
         modified = self.table.modified
         if not modified:
             self.close()

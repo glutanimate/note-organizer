@@ -28,13 +28,12 @@ class Rearranger:
         print("\n" * 4)
 
         first = nids.pop(0)
-        if start != first:
+        if start and start != first:
             last = self.updateNidSafely(first, start)
         else:
             last = first
 
         for idx, nid in enumerate(nids):
-
 
             try:
                 nxt = nids[idx+1]

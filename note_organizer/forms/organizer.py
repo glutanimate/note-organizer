@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'designer/organizer.ui'
 #
-# Created: Sat Apr 15 21:19:38 2017
+# Created: Sat Apr 15 22:01:48 2017
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -29,9 +29,9 @@ class Ui_Dialog(object):
         self.label = QtGui.QLabel(Dialog)
         self.label.setObjectName(_fromUtf8("label"))
         self.horizontalLayout.addWidget(self.label)
-        self.dateTimeEdit = QtGui.QDateTimeEdit(Dialog)
-        self.dateTimeEdit.setObjectName(_fromUtf8("dateTimeEdit"))
-        self.horizontalLayout.addWidget(self.dateTimeEdit)
+        self.date = QtGui.QDateTimeEdit(Dialog)
+        self.date.setObjectName(_fromUtf8("date"))
+        self.horizontalLayout.addWidget(self.date)
         self.buttonBox = QtGui.QDialogButtonBox(Dialog)
         self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName(_fromUtf8("buttonBox"))
@@ -44,5 +44,5 @@ class Ui_Dialog(object):
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(QtGui.QApplication.translate("Dialog", "Reorganize Notes", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("Dialog", "Start from", None, QtGui.QApplication.UnicodeUTF8))
-        self.dateTimeEdit.setDisplayFormat(QtGui.QApplication.translate("Dialog", "yyyy-MM-dd HH:mm", None, QtGui.QApplication.UnicodeUTF8))
+        self.date.setDisplayFormat(QtGui.QApplication.translate("Dialog", "yyyy-MM-dd HH:mm", None, QtGui.QApplication.UnicodeUTF8))
 
