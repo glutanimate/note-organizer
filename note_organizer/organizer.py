@@ -70,7 +70,6 @@ class Organizer(QDialog):
 
     def setupHeaders(self):
         """Restore and setup headers"""
-        restoreHeader(self.hh, "organizer")
         self.hh.setMovable(True)
         self.hh.setClickable(False)
         self.hh.setHighlightSections(False)
@@ -80,6 +79,7 @@ class Organizer(QDialog):
         self.hh.setStretchLastSection(True)
         self.hh.resizeSection(self.hh.logicalIndex(0), 120)
         self.hh.resizeSection(self.hh.logicalIndex(1), 240)
+        restoreHeader(self.hh, "organizer")
         vh = self.table.verticalHeader()
         vh.setClickable(False)
         vh.setResizeMode(QHeaderView.Fixed)
@@ -137,7 +137,12 @@ class Organizer(QDialog):
 
         for row, columns in enumerate(data):
             for col, value in enumerate(columns):
-                t.setItem(row,col,QTableWidgetItem(value))
+                item = QTableWidgetItem(value)
+                f = QFont()
+                f.setFamily(self.browser.mw.fontFamily)
+                f.setPixelSize(self.browser.mw.fontHeight)
+                item.setFont(f)
+                t.setItem(row,col,item)
 
 
     def focusNid(self, nid):

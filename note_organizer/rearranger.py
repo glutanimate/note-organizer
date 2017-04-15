@@ -29,7 +29,6 @@ class Rearranger:
         last = nids.pop(0)
         for idx, nid in enumerate(nids):
             
-            # print "idx", idx
             try:
                 nxt = nids[idx+1]
             except IndexError:
