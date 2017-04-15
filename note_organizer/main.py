@@ -19,31 +19,33 @@ from .organizer import Organizer
    
 def onBrowserRowChanged(self, current, previous):
     """Sync row position to Organizer"""
-    if not self._organizer:
+    if not self.organizer:
         return
     nid = str(self.card.nid)
-    self._organizer.focusNid(nid)
+    self.organizer.focusNid(nid)
+
 
 def onBrowserClose(self, evt):
     """Close with browser"""
-    if self._organizer:
-        self._organizer.close()
+    if self.organizer:
+        self.organizer.close()
+
 
 def onReorganize(self):
     """Invoke Organizer window"""
-    if self._organizer:
-        self._organizer.show()
+    if self.organizer:
+        self.organizer.show()
         return
-    self._organizer = Organizer(self)
-    self._organizer.show()
+    self.organizer = Organizer(self)
+    self.organizer.show()
 
 
 def setupMenu(self):
     """Setup menu entries and hotkeys"""
-    self.menRrng = QMenu(_("&Organizer"))
+    self.menuOrg = QMenu(_("&Organizer"))
     action = self.menuBar().insertMenu(
-                self.mw.form.menuTools.menuAction(), self.menRrng)
-    menu = self.menRrng
+                self.mw.form.menuTools.menuAction(), self.menuOrg)
+    menu = self.menuOrg
     menu.addSeparator()
     a = menu.addAction('Reorganize Notes...')
     a.setShortcut(QKeySequence("Ctrl+R"))
@@ -52,9 +54,9 @@ def setupMenu(self):
 
 # Hooks, etc.:
 
-Browser._organizer = None
 addHook("browser.setupMenus", setupMenu)
 Browser.onReorganize = onReorganize
+Browser.organizer = None
 
 Browser.onRowChanged = wrap(Browser.onRowChanged, onBrowserRowChanged, "after")
 Browser.closeEvent = wrap(Browser.closeEvent, onBrowserClose, "before")

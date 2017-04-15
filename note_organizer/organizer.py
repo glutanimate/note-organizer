@@ -52,7 +52,7 @@ class Organizer(QDialog):
 
     def setupEvents(self):
         """Connect event signals to slots"""
-        self.table.cellClicked.connect(self.onCellClicked)
+        self.table.selectionModel().selectionChanged.connect(self.onRowChanged)
         self.f.buttonBox.rejected.connect(self.onReject)
         self.f.buttonBox.accepted.connect(self.onAccept)
 
@@ -234,8 +234,8 @@ class Organizer(QDialog):
             if new_row < cut_row:
                 offset += 1
             adj_row = cut_row + offset
-            # print "moving {} (actual: {}) to {}".format(
-            #         cut_row+1, adj_row+1, new_row+1)
+            # print("moving {} (actual: {}) to {}".format(
+            #         cut_row+1, adj_row+1, new_row+1))
             for col in range(cols):
                 dupe = QTableWidgetItem(t.item(adj_row, col))
                 font = dupe.font()
@@ -248,7 +248,7 @@ class Organizer(QDialog):
 
         # Remove old row
         for row in cut[::-1]:
-            # print "removing {}".format(row+offset)
+            # print("removing {}".format(row+offset))
             t.removeRow(row+offset)
 
         # reselect moved rows
@@ -266,12 +266,13 @@ class Organizer(QDialog):
         self.clipboard = None
 
 
-    def onCellClicked(self, row, col):
+    def onRowChanged(self, current, previous):
         """Sync row change to Browser"""
         mods = QApplication.keyboardModifiers()
         if mods & (Qt.ShiftModifier | Qt.ControlModifier):
             return # don't try to focus when multiple items are selected
-        item = self.table.item(row, 0)
+        rows = self.table.getSelectedRows()
+        item = self.table.item(rows[0], 0)
         if not item:
             return
         nid = item.text()
@@ -285,7 +286,7 @@ class Organizer(QDialog):
 
     def reject(self):
         """Notify browser of close event"""
-        self.browser._organizer = None
+        self.browser.organizer = None
         saveGeom(self, "organizer")
         saveHeader(self.hh, "organizer")
         super(Organizer, self).reject()

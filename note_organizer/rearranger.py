@@ -12,7 +12,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 from aqt import mw
 
 class Rearranger:
-
+    """Performs the actual database reorganization"""
     def __init__(self, browser, moved):
         self.browser = browser
         self.moved = moved
@@ -22,10 +22,10 @@ class Rearranger:
         modified = []
         # Full database sync required:
         mw.col.modSchema(check=True)
-        # Create undo checkpoint
+        # Create checkpoint
         mw.checkpoint("Reorganize notes")
 
-        print "\n" * 4
+        print("\n" * 4)
         last = nids.pop(0)
         for idx, nid in enumerate(nids):
             
@@ -49,17 +49,17 @@ class Rearranger:
                     "select id from notes where id = ?", new_nid):
                 new_nid += 1
 
-            print "=================================="
-            print "last", last
-            print "nid", nid
-            print "next", nxt
-            print "new_nid", new_nid
+            print("==================================")
+            print("last", last)
+            print("current", nid)
+            print("next", nxt)
+            print("->new", new_nid)
 
             # Update note row
             mw.col.db.execute(
                 """update notes set id=? where id = ?""", new_nid, nid)
 
-            # Update cards rows
+            # Update card rows
             mw.col.db.execute(
                 """update cards set nid=? where nid = ?""", new_nid, nid)
 
