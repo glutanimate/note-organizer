@@ -60,8 +60,11 @@ class NoteTable(QTableWidget):
                         r = 0
 
                     for j in range(self.columnCount()):
-                        source = QTableWidgetItem(self.item(row, j))
-                        self.setItem(r, j, source)
+                        duplicate = QTableWidgetItem(self.item(row, j))
+                        font = duplicate.font()
+                        font.setBold(True)
+                        duplicate.setFont(font)
+                        self.setItem(r, j, duplicate)
 
                 event.accept()
 
