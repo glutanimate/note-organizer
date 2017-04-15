@@ -39,7 +39,8 @@ class Rearranger:
             if last < nid < nxt:
                 # above check won't work if we moved an entire block,
                 # so we need to check against all remaining indices
-                if not any(nid>i for i in nids[idx:]):
+                # (excluding the ones that we know have been moved)
+                if not any(nid>i for i in nids[idx:] if i not in self.moved):
                     last = nid
                     continue
         

@@ -272,6 +272,8 @@ class Organizer(QDialog):
         if mods & (Qt.ShiftModifier | Qt.ControlModifier):
             return # don't try to focus when multiple items are selected
         rows = self.table.getSelectedRows()
+        if not rows:
+            return
         item = self.table.item(rows[0], 0)
         if not item:
             return
