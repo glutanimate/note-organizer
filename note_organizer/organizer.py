@@ -11,7 +11,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 
 from aqt.qt import *
 
-from aqt.utils import saveHeader, restoreHeader
+from aqt.utils import saveHeader, restoreHeader, askUser, tooltip
 
 from .forms import organizer
 from .notetable import NoteTable
@@ -45,6 +45,8 @@ class Organizer(QDialog):
         self.setupHeaders()
         self.setupEvents()
         self.table.setFocus()
+        if self.browser.card:
+            self.focusNid(str(self.browser.card.nid))
 
 
         # TODO: handle mw.reset events (especially note deletion)
@@ -96,11 +98,15 @@ class Organizer(QDialog):
 
         # either get selected cards or entire view
         sel = self.browser.selectedCards()
+        idxs = self.browser.form.tableView.selectionModel().selectedRows()
         if not sel or len(sel) < 2:
             sel = model.cards
+            idxs = None
 
         # sort and eliminate duplicates
         for row, cid in enumerate(sel):
+            if idxs:
+                row = idxs[row].row()
             c = self.browser.col.getCard(cid)
             nid = c.note().id
             if nid not in nids:
@@ -120,9 +126,11 @@ class Organizer(QDialog):
         headers = [coldict[key] for key in model.activeCols]
 
         # set table data
+        row_count = len(data)
         t.setColumnCount(len(model.activeCols) + 1)
         t.setHorizontalHeaderLabels(["Note ID"] + headers)
-        t.setRowCount(len(data))
+        t.setRowCount(row_count)
+        self.setWindowTitle("Reorganize Notes ({} notes shown)".format(row_count))
         for row, columns in enumerate(data):
             for col, value in enumerate(columns):
                 t.setItem(row,col,QTableWidgetItem(value))
@@ -191,6 +199,7 @@ class Organizer(QDialog):
 
 
     def onCutRow(self):
+        # TODO: Move to notetable?
         rows = self.getSelectedRows()
         if not rows:
             return
@@ -199,6 +208,7 @@ class Organizer(QDialog):
 
     def onPasteRow(self):
         # TODO: in dire need of refactoring
+        # TODO: Move to notetable?
 
         t = self.table
         cut = self._context
@@ -277,7 +287,19 @@ class Organizer(QDialog):
         saveHeader(self.hh, "organizer")
         super(Organizer, self).reject()
 
-    def onAccept(self):   
+    def onAccept(self):
+        repo = len(self._modified)
+        ## TODO: keep track of modifications via DnD
+        # if repo == 0:
+        #     self.close()
+        #     tooltip("No changes.")
+        #     return False
+        ret = askUser("This will modify the note creation date of at least "
+            "{} notes. Are you sure you want to proceed?".format(repo),
+            parent=self, defaultno=True, title="Please confirm action")
+        if not ret:
+            return False
+
         res = []
         for row in range(self.table.rowCount()):
             item = self.table.item(row, 0)

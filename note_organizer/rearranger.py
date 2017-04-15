@@ -23,14 +23,9 @@ class Rearranger:
         mw.progress.start(label="Note Reorganizer: updating...", max = len(nids))
         mw.checkpoint("Reorganize notes")
 
-        print self._modified
-
         modified = []
 
-        print "     "
-        print "     "
-        print "     "
-        print "     "
+        print "\n" * 4
 
         last = nids.pop(0)
         for idx, nid in enumerate(nids):
@@ -41,10 +36,9 @@ class Rearranger:
             except IndexError:
                 nxt = nid+1
 
-
-
             if last < nid < nxt:
                 if not any(nid>i for i in nids[idx:]): # block moved
+                    last = nid
                     continue
         
             dest = last+1
@@ -76,7 +70,7 @@ class Rearranger:
 
         mw.reset()
         
-        self.selectNotes(modified)
+        #self.selectNotes(modified)
 
         return
 
