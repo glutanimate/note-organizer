@@ -42,6 +42,7 @@ class Organizer(QDialog):
         self.hh = self.table.horizontalHeader()
         self.f.tableLayout.addWidget(self.table)
         self.fillTable()
+        self.updateDate()
         self.setupHeaders()
         restoreGeom(self, "organizer")
         self.setupEvents()
@@ -53,6 +54,7 @@ class Organizer(QDialog):
     def setupEvents(self):
         """Connect event signals to slots"""
         self.table.selectionModel().selectionChanged.connect(self.onRowChanged)
+        self.table.cellChanged.connect(self.onCellChanged)
         self.f.buttonBox.rejected.connect(self.onReject)
         self.f.buttonBox.accepted.connect(self.onAccept)
 
@@ -144,6 +146,31 @@ class Organizer(QDialog):
                 item.setFont(f)
                 t.setItem(row,col,item)
 
+
+    def onCellChanged(self, row, col):
+        if row == col == 0:
+            self.updateDate()
+
+
+    def updateDate(self):
+        # TODO: set date bounds to (collection created, today)
+        item = self.table.item(0, 0)
+        if not item:
+            return False
+        try:
+            nid = int(item.text())
+        except ValueError:
+            return False
+        timestamp = nid / 1000
+        qtime = QDateTime()
+        qtime.setTime_t(timestamp)
+        self.f.dateTimeEdit.setDateTime(qtime)
+
+
+    def getDate(self):
+        qtime = self.f.dateTimeEdit.dateTime()
+        timestamp = qtime.toTime_t()
+        return timestamp * 1000
 
     def focusNid(self, nid):
         """Find and select row by note ID"""
@@ -318,12 +345,19 @@ class Organizer(QDialog):
             item = self.table.item(row, 0)
             if not item: # should not happen
                 continue
-            res.append(int(item.text()))
+            text = item.text()
+            try:
+                val = int(text)
+            except ValueError:
+                val = text
+            res.append(val)
         
+        start = self.getDate()
+
         self.close()
 
         rearranger = Rearranger(self.browser, modified)
-        rearranger.rearrange(res)
+        rearranger.rearrange(res, start)
 
 
     def onReject(self):

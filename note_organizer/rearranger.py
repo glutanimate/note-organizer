@@ -17,7 +17,7 @@ class Rearranger:
         self.browser = browser
         self.moved = moved
 
-    def rearrange(self, nids):
+    def rearrange(self, nids, start):
         """Adjust nid order"""
         modified = []
         # Full database sync required:
@@ -26,9 +26,16 @@ class Rearranger:
         mw.checkpoint("Reorganize notes")
 
         print("\n" * 4)
-        last = nids.pop(0)
+
+        first = nids.pop(0)
+        if start != first:
+            last = self.updateNidSafely(first, start)
+        else:
+            last = first
+
         for idx, nid in enumerate(nids):
-            
+
+
             try:
                 nxt = nids[idx+1]
             except IndexError:
@@ -44,10 +51,8 @@ class Rearranger:
                     continue
         
             new_nid = last + 1
-            # Ensure timestamp doesn't already exist
-            while mw.col.db.scalar(
-                    "select id from notes where id = ?", new_nid):
-                new_nid += 1
+            new_nid = self.updateNidSafely(nid, new_nid)
+            last = new_nid
 
             print("==================================")
             print("last", last)
@@ -55,22 +60,27 @@ class Rearranger:
             print("next", nxt)
             print("->new", new_nid)
 
-            # Update note row
-            mw.col.db.execute(
-                """update notes set id=? where id = ?""", new_nid, nid)
-
-            # Update card rows
-            mw.col.db.execute(
-                """update cards set nid=? where nid = ?""", new_nid, nid)
-
-            last = new_nid
-
             if nid in self.moved:
                 modified.append(new_nid)
 
         mw.reset()
         self.selectNotes(modified)
 
+    def updateNidSafely(self, nid, new_nid):
+        # Ensure timestamp doesn't already exist
+        while mw.col.db.scalar(
+                "select id from notes where id = ?", new_nid):
+            new_nid += 1
+
+        # Update note row
+        mw.col.db.execute(
+            """update notes set id=? where id = ?""", new_nid, nid)
+
+        # Update card rows
+        mw.col.db.execute(
+            """update cards set nid=? where nid = ?""", new_nid, nid)
+
+        return new_nid
 
     def selectNotes(self, nids):
         sm = self.browser.form.tableView.selectionModel()
