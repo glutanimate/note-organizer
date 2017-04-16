@@ -9,6 +9,9 @@ Copyright: (c) Glutanimate 2017
 License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.html
 """
 
+from timeit import default_timer as timer
+
+
 from aqt.qt import *
 
 from aqt.utils import saveHeader, restoreHeader, saveGeom, \
@@ -42,7 +45,12 @@ class Organizer(QDialog):
         self.hh = self.table.horizontalHeader()
         self.f.tableLayout.addWidget(self.table)
 
+        print("=====Performance benchmark=====")
+        start = timer()
         self.fillTable()
+        end = timer()
+        print("total", end - start)    
+          
         self.setupDate()
         self.updateDate()
         self.setupHeaders()
@@ -104,6 +112,8 @@ class Organizer(QDialog):
         data = []
         notes = []
         nids = []
+        mcol = m.activeCols
+        mcolcnt = len(m.activeCols)
 
         # either get selected cards or entire view
         sel = b.selectedCards()
@@ -114,42 +124,50 @@ class Organizer(QDialog):
             sel = m.cards
             idxs = None
 
-        # sort and eliminate duplicates
+        # eliminate duplicates, get data, and sort it by nid
+        start = timer()
         for row, cid in enumerate(sel):
             if idxs:
                 row = idxs[row].row()
-            c = b.col.getCard(cid)
+            c = m.cardObjs.get(cid, None)
+            if not c:
+                c = m.col.getCard(cid)
+                m.cardObjs[cid] = c
             nid = c.note().id
-            if nid not in nids:
-                notes.append((nid, row))
-                nids.append(nid)
-        notes.sort()
-
-        # get browser model data for rows
-        for idx, (nid, row) in enumerate(notes):
-            data.append([str(nid)])
-            for col, val in enumerate(m.activeCols):
+            if nid in nids:
+                continue
+            data_row = [str(nid)]
+            for col in range(mcolcnt):
                 index = m.index(row, col)
-                data[idx].append(m.data(index, Qt.DisplayRole))
+                data_row.append(m.data(index, Qt.DisplayRole))
+            data.append(data_row)
+        data.sort()
 
-        coldict = {key: title for key, title in b.columns}
-        headers = [coldict[key] for key in m.activeCols]
+        end = timer()
+        print("getdata", end - start) 
 
         # set table data
+        start = timer()
+        coldict = dict(b.columns)
+        headers = ["Note ID"] + [coldict[key] for key in mcol]
         row_count = len(data)
-        t.setColumnCount(len(m.activeCols) + 1)
-        t.setHorizontalHeaderLabels(["Note ID"] + headers)
         t.setRowCount(row_count)
-        self.setWindowTitle("Reorganize Notes ({} notes shown)".format(row_count))
+        t.setColumnCount(len(headers))
+        t.setHorizontalHeaderLabels(headers)
 
         for row, columns in enumerate(data):
             for col, value in enumerate(columns):
                 item = QTableWidgetItem(value)
                 f = QFont()
-                f.setFamily(self.browser.mw.fontFamily)
-                f.setPixelSize(self.browser.mw.fontHeight)
+                f.setFamily(b.mw.fontFamily)
+                f.setPixelSize(b.mw.fontHeight)
                 item.setFont(f)
                 t.setItem(row,col,item)
+
+        end = timer()
+        print("setdata", end - start)
+
+        self.setWindowTitle("Reorganize Notes ({} notes shown)".format(row_count))
 
 
     def setupDate(self):
