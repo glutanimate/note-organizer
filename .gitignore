@@ -4,13 +4,12 @@
 *.sublime-workspace
 .hidden
 .directory
-note_rearranger/forms
+note_organizer/forms
 tools/test.py
 docs/todo.md
 docs/description.html
-note-rearranger-*.zip
+note-organizer-*.zip
 .gitold
 research
 docs/specs.md
 .sublime-backup
-note_organizer/forms
