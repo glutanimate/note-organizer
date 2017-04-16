@@ -41,6 +41,7 @@ class Organizer(QDialog):
         self.table = NoteTable(self)
         self.hh = self.table.horizontalHeader()
         self.f.tableLayout.addWidget(self.table)
+
         self.fillTable()
         self.setupDate()
         self.updateDate()
@@ -51,6 +52,7 @@ class Organizer(QDialog):
         # focus currently selected card:
         if self.browser.card:
             self.focusNid(str(self.browser.card.nid))
+
 
     def setupEvents(self):
         """Connect event signals to slots"""
@@ -71,6 +73,7 @@ class Organizer(QDialog):
         pasteCut = QShortcut(QKeySequence(_(HOTKEY_PASTE)), 
                 self.table, activated=self.onPasteRow)
 
+
     def setupHeaders(self):
         """Restore and setup headers"""
         self.hh.setMovable(True)
@@ -90,6 +93,7 @@ class Organizer(QDialog):
         vh_font = vh.font()
         vh_font.setPointSize(10)
         vh.setFont(vh_font)
+
 
     def fillTable(self):
         """Fill table rows with data"""

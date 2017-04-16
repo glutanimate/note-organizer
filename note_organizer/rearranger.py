@@ -11,11 +11,15 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 
 from aqt import mw
 
+EMPTY_NOTE = "Empty note"
+
 class Rearranger:
     """Performs the actual database reorganization"""
+
     def __init__(self, browser, moved):
         self.browser = browser
         self.moved = moved
+
 
     def rearrange(self, nids, start):
         """Adjust nid order"""
@@ -65,8 +69,9 @@ class Rearranger:
         mw.reset()
         self.selectNotes(modified)
 
+
     def updateNidSafely(self, nid, new_nid):
-        # Ensure timestamp doesn't already exist
+        """Update nid while ensuring that timestamp doesn't already exist"""
         while mw.col.db.scalar(
                 "select id from notes where id = ?", new_nid):
             new_nid += 1
@@ -81,7 +86,16 @@ class Rearranger:
 
         return new_nid
 
+
+    def getDeck(self):
+        pass
+
+    def createNewNote(self):
+        pass
+
+
     def selectNotes(self, nids):
+        """Select browser entries by note id"""
         sm = self.browser.form.tableView.selectionModel()
         sm.clear()
         cids = []
