@@ -16,6 +16,7 @@ from anki.hooks import addHook, wrap
 
 from .organizer import Organizer
 
+HOTKEY_ORGANIZER = "Ctrl+R"
    
 def onBrowserRowChanged(self, current, previous):
     """Sync row position to Organizer"""
@@ -48,7 +49,7 @@ def setupMenu(self):
     menu = self.menuOrg
     menu.addSeparator()
     a = menu.addAction('Reorganize Notes...')
-    a.setShortcut(QKeySequence("Ctrl+R"))
+    a.setShortcut(QKeySequence(HOTKEY_ORGANIZER))
     a.triggered.connect(self.onReorganize)
 
 
