@@ -9,7 +9,10 @@ Copyright: (c) Glutanimate 2017
 License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.html
 """
 
+from anki.errors import AnkiError
+
 from aqt import mw
+from aqt.utils import tooltip
 
 EMPTY_NOTE = "Empty note"
 
@@ -25,7 +28,11 @@ class Rearranger:
         """Adjust nid order"""
         modified = []
         # Full database sync required:
-        mw.col.modSchema(check=True)
+        try:
+            mw.col.modSchema(check=True)
+        except AnkiError:
+            tooltip("Reorganization aborted.")
+            return False
         # Create checkpoint
         mw.checkpoint("Reorganize notes")
 
@@ -68,6 +75,7 @@ class Rearranger:
 
         mw.reset()
         self.selectNotes(modified)
+        tooltip("Reorganized {} notes.".format(len(modified)))
 
 
     def updateNidSafely(self, nid, new_nid):
