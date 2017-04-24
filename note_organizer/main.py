@@ -15,8 +15,8 @@ from aqt.browser import Browser
 from anki.hooks import addHook, wrap
 
 from .organizer import Organizer
+from .config import *
 
-HOTKEY_ORGANIZER = "Ctrl+R"
    
 def onBrowserRowChanged(self, current, previous):
     """Sync row position to Organizer"""

@@ -13,8 +13,7 @@ from anki.errors import AnkiError
 
 from aqt import mw
 from aqt.utils import tooltip
-
-EMPTY_NOTE = "Empty note"
+from config import *
 
 class Rearranger:
     """Performs the actual database reorganization"""
@@ -94,6 +93,9 @@ class Rearranger:
 
         return new_nid
 
+
+    def backupOriginalNid(self, nid, new_nid):
+        pass
 
     def getDeck(self):
         pass

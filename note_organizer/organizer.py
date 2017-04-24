@@ -20,16 +20,8 @@ from aqt.utils import saveHeader, restoreHeader, saveGeom, \
 from .forms import organizer
 from .notetable import NoteTable
 from .rearranger import Rearranger
+from .config import *
 
-HOTKEY_INSERT = "Ctrl+N"
-HOTKEY_REMOVE = "Del"
-HOTKEY_CUT = "Ctrl+X"
-HOTKEY_PASTE = "Ctrl+V"
-
-#########
-
-ASK_CONFIRMATION = False
-EMPTY_NOTE = "Empty note"
 
 class Organizer(QDialog):
     """Main dialog"""
