@@ -28,6 +28,7 @@ HOTKEY_PASTE = "Ctrl+V"
 
 #########
 
+ASK_CONFIRMATION = False
 EMPTY_NOTE = "Empty note"
 
 class Organizer(QDialog):
@@ -370,10 +371,13 @@ class Organizer(QDialog):
             tooltip("No changes performed")
             return False
 
-        ret = askUser("This will <b>modify</b> the note creation date of at least "
-            "<b>{}</b> notes (a lot more if other notes need to be shuffled, too)."
-            "<br><br>Are you sure you want to proceed?".format(len(modified)),
-            parent=self, defaultno=True, title="Please confirm changes")
+        if ASK_CONFIRMATION: # TODO: implement in options dialog
+            ret = askUser("This will <b>modify</b> the note creation date of at least "
+                "<b>{}</b> notes (a lot more if other notes need to be shuffled, too)."
+                "<br><br>Are you sure you want to proceed?".format(len(modified)),
+                parent=self, defaultno=True, title="Please confirm changes")
+        else:
+            ret = True
         if not ret:
             return False
 
