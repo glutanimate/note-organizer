@@ -28,7 +28,6 @@ class Organizer(QDialog):
     """Main dialog"""
     def __init__(self, browser):
         # TODO: handle mw.reset events (especially note deletion)
-        # TODO: save and restore window dimensions
         super(Organizer, self).__init__(parent=browser)
         self.browser = browser
         self.mw = browser.mw
@@ -265,7 +264,7 @@ class Organizer(QDialog):
         row = rows[0]
         self.table.insertRow(row)
         if not model:
-            model = "Same as next"
+            model = "Same as previous"
         data = u"{}: {}".format(NEW_NOTE, model)
         item = QTableWidgetItem(data)
         font = item.font()

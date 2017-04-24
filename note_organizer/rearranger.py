@@ -38,13 +38,11 @@ class Rearranger:
 
         print("\n" * 4)
 
-        first = nids.pop(0)
-        if start and start != first:
-            last = self.updateNidSafely(first, start)
-        else:
-            last = first
-
+        last = 0
         for idx, nid in enumerate(nids):
+
+            if not self.noteExists(nid): # note deleted
+                continue
 
             try:
                 nxt = nids[idx+1]
@@ -52,7 +50,7 @@ class Rearranger:
                 nxt = nid+1
 
             # check if order as expected
-            if last < nid < nxt:
+            if last != 0 and last < nid < nxt:
                 # above check won't work if we moved an entire block,
                 # so we need to check against all remaining indices
                 # (excluding the ones that we know have been moved)
@@ -60,7 +58,14 @@ class Rearranger:
                     last = nid
                     continue
 
-            new_nid = last + 1
+            if last != 0:
+                new_nid = last + 1 # regular nids
+            elif start and start != nid:
+                new_nid = start # first nid, date changed
+            else:
+                last = nid # first nid, date unmodified
+                continue
+            
             if BACKUP_NIDS:
                 self.backupOriginalNid(nid)
             new_nid = self.updateNidSafely(nid, new_nid)
@@ -80,6 +85,10 @@ class Rearranger:
         self.selectNotes(modified)
         tooltip("Reorganized {} notes.".format(len(modified)))
 
+
+    def noteExists(self, nid):
+        return mw.col.db.scalar("""
+select id from notes where id = ?""", nid)
 
     def updateNidSafely(self, nid, new_nid):
         """Update nid while ensuring that timestamp doesn't already exist"""
