@@ -14,6 +14,7 @@ from timeit import default_timer as timer
 
 from aqt.qt import *
 
+from aqt import mw
 from aqt.utils import saveHeader, restoreHeader, saveGeom, \
     restoreGeom, askUser, tooltip
 
@@ -73,6 +74,40 @@ class Organizer(QDialog):
                 self.table, activated=self.onCutRow)
         pasteCut = QShortcut(QKeySequence(_(HOTKEY_PASTE)), 
                 self.table, activated=self.onPasteRow)
+
+        # Sets up context sub-menu and hotkeys for various note types
+        self.models_menu = self.setupModels()
+
+    def setupDate(self):
+        """Set up datetime range"""
+        qtime = QDateTime()
+        qtime.setTime_t(0)
+        self.f.date.setMinimumDateTime(qtime)
+        self.f.date.setMaximumDateTime(QDateTime.currentDateTime())
+
+
+    def setupModels(self):
+        models = [mod['name'] for mod in mw.col.models.all()]
+        models.sort()
+        mm = QMenu("New note...")
+        for idx, model in enumerate(models):
+            label = model
+            if idx < 10:
+                modifier = "Ctrl"
+            elif idx < 20:
+                modifier = "Ctrl+Shift"
+            elif idx < 30:
+                modifier = "Ctrl+Alt+Shift"
+            else:
+                modifier = None
+            if modifier:
+                hotkey = u"{}+{}".format(modifier, str((idx+1) % 10))
+                label = label + "\t" + hotkey
+                sc = QShortcut(QKeySequence(hotkey), 
+                    self.table, activated=lambda a=model: self.onInsertNote(a))
+            a = mm.addAction(label)
+            a.triggered.connect(lambda _, a=model: self.onInsertNote(a))
+        return mm
 
 
     def setupHeaders(self):
@@ -164,14 +199,6 @@ class Organizer(QDialog):
         self.setWindowTitle("Reorganize Notes ({} notes shown)".format(row_count))
 
 
-    def setupDate(self):
-        """Set up datetime range"""
-        qtime = QDateTime()
-        qtime.setTime_t(0)
-        self.f.date.setMinimumDateTime(qtime)
-        self.f.date.setMaximumDateTime(QDateTime.currentDateTime())
-
-
     def onCellChanged(self, row, col):
         """Update datetime display when (0,0) changed"""
         if row == col == 0:
@@ -202,13 +229,6 @@ class Organizer(QDialog):
         return timestamp * 1000
 
 
-    def focusNid(self, nid):
-        """Find and select row by note ID"""
-        cell = self.table.findItems(nid, Qt.MatchFixedString)
-        if cell:
-            self.table.setCurrentItem(cell[0])
-
-
     def onTableContext(self, pos):
         """Custom context menu for the table"""
         # need to map to viewport due to QAbstractScrollArea:
@@ -221,28 +241,38 @@ class Organizer(QDialog):
             a = m.addAction("Paste\t{}".format(HOTKEY_PASTE))
             a.triggered.connect(self.onPasteRow)
 
-        a = m.addAction("Insert empty note\t{}".format(HOTKEY_INSERT))
+        a = m.addAction("New note\t{}".format(HOTKEY_INSERT))
         a.triggered.connect(self.onInsertNote)
-        
+
+        m.addMenu(self.models_menu)
+
         sel = self.table.selectionModel().selectedRows()
         if sel:
             row = sel[-1].row()
             item = self.table.item(row, 0)
-            if item and item.text() == EMPTY_NOTE:
+            if item and item.text().startswith(NEW_NOTE):
                 a = m.addAction("Remove empty note(s)\t{}".format(HOTKEY_REMOVE))
                 a.triggered.connect(self.onRemoveNotes)
 
         m.exec_(gpos)
 
 
-    def onInsertNote(self):
+    def onInsertNote(self, model=None):
         """Insert empty row"""
         rows = self.table.getSelectedRows()
         if not rows:
             return
         row = rows[0]
         self.table.insertRow(row)
-        self.table.setItem(row, 0, QTableWidgetItem(EMPTY_NOTE))
+        if not model:
+            model = "Same as next"
+        data = u"{}: {}".format(NEW_NOTE, model)
+        item = QTableWidgetItem(data)
+        font = item.font()
+        font.setBold(True)
+        item.setFont(font)
+        item.setForeground(Qt.darkGreen)
+        self.table.setItem(row, 0, item)
 
 
     def onRemoveNotes(self):
@@ -253,7 +283,7 @@ class Organizer(QDialog):
         to_remove = []
         for row in rows:
             item = self.table.item(row, 0)
-            if not item or not item.text() == EMPTY_NOTE:
+            if not item or not item.text().startswith(NEW_NOTE):
                 continue
             to_remove.append(row)
         for row in to_remove[::-1]: # in reverse to avoid updating idxs
@@ -346,6 +376,13 @@ class Organizer(QDialog):
             if cid in self.browser.model.cards:
                 self.browser.focusCid(cid)
                 break
+
+
+    def focusNid(self, nid):
+        """Find and select row by note ID"""
+        cell = self.table.findItems(nid, Qt.MatchFixedString)
+        if cell:
+            self.table.setCurrentItem(cell[0])
 
 
     def reject(self):
