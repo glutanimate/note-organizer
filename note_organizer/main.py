@@ -22,9 +22,19 @@ def onBrowserRowChanged(self, current, previous):
     """Sync row position to Organizer"""
     if not self.organizer:
         return
-    nid = str(self.card.nid)
-    self.organizer.focusNid(nid)
+    self.organizer.focusNid(self.card.nid)
 
+
+def onBrowserNoteDeleted(self, _old):
+    """Synchronize note deletion to Organizer"""
+    if not self.organizer:
+        return _old(self)
+    nids = self.selectedNotes()
+    if not nids:
+        return
+    ret = _old(self)
+    self.organizer.deleteNids(nids)
+    return ret
 
 def onBrowserClose(self, evt):
     """Close with browser"""
@@ -61,3 +71,4 @@ Browser.organizer = None
 
 Browser.onRowChanged = wrap(Browser.onRowChanged, onBrowserRowChanged, "after")
 Browser.closeEvent = wrap(Browser.closeEvent, onBrowserClose, "before")
+Browser.deleteNotes = wrap(Browser.deleteNotes, onBrowserNoteDeleted, "around")

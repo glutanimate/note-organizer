@@ -87,13 +87,14 @@ class Rearranger:
 
 
     def noteExists(self, nid):
+        """Checks the database to see whether the nid is actually assigned"""
         return mw.col.db.scalar("""
 select id from notes where id = ?""", nid)
 
+
     def updateNidSafely(self, nid, new_nid):
         """Update nid while ensuring that timestamp doesn't already exist"""
-        while mw.col.db.scalar(
-                "select id from notes where id = ?", new_nid):
+        while self.noteExists(new_nid):
             new_nid += 1
 
         # Update note row

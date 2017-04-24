@@ -11,10 +11,10 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 
 from timeit import default_timer as timer
 
+from anki.hooks import addHook, remHook
 
 from aqt.qt import *
 
-from aqt import mw
 from aqt.utils import saveHeader, restoreHeader, saveGeom, \
     restoreGeom, askUser, tooltip
 
@@ -27,7 +27,6 @@ from .config import *
 class Organizer(QDialog):
     """Main dialog"""
     def __init__(self, browser):
-        # TODO: handle mw.reset events (especially note deletion)
         super(Organizer, self).__init__(parent=browser)
         self.browser = browser
         self.mw = browser.mw
@@ -53,6 +52,7 @@ class Organizer(QDialog):
         # focus currently selected card:
         if self.browser.card:
             self.focusNid(str(self.browser.card.nid))
+        addHook("reset", self.onReset)
 
 
     def setupEvents(self):
@@ -86,7 +86,7 @@ class Organizer(QDialog):
 
 
     def setupModels(self):
-        models = [mod['name'] for mod in mw.col.models.all()]
+        models = [mod['name'] for mod in self.mw.col.models.all()]
         models.sort()
         mm = QMenu("New note...")
         for idx, model in enumerate(models):
@@ -377,15 +377,39 @@ class Organizer(QDialog):
                 break
 
 
+    def deleteNids(self, nids):
+        """Find and delete row by note ID"""
+        for nid in nids:
+            nid = str(nid)
+            cells = self.table.findItems(nid, Qt.MatchFixedString)
+            if cells:
+                row = cells[0].row()
+                self.table.removeRow(row)
+
+
     def focusNid(self, nid):
         """Find and select row by note ID"""
-        cell = self.table.findItems(nid, Qt.MatchFixedString)
-        if cell:
-            self.table.setCurrentItem(cell[0])
+        nid = str(nid)
+        cells = self.table.findItems(nid, Qt.MatchFixedString)
+        if cells:
+            self.table.setCurrentItem(cells[0])
+
+
+    def onReset(self):
+        self.clipboard = []
+        self.fillTable()
+        self.updateDate()
+        if self.browser.card:
+            self.focusNid(str(self.browser.card.nid))
+
+
+    def cleanup(self):
+        remHook("reset", self.onReset)
 
 
     def reject(self):
         """Notify browser of close event"""
+        self.cleanup()
         self.browser.organizer = None
         saveGeom(self, "organizer")
         saveHeader(self.hh, "organizer")
