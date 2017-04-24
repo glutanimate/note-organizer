@@ -245,13 +245,8 @@ class Organizer(QDialog):
 
         m.addMenu(self.models_menu)
 
-        sel = self.table.selectionModel().selectedRows()
-        if sel:
-            row = sel[-1].row()
-            item = self.table.item(row, 0)
-            if item and item.text().startswith(NEW_NOTE):
-                a = m.addAction("Remove empty note(s)\t{}".format(HOTKEY_REMOVE))
-                a.triggered.connect(self.onRemoveNotes)
+        a = m.addAction("Remove\t{}".format(HOTKEY_REMOVE))
+        a.triggered.connect(self.onRemoveNotes)
 
         m.exec_(gpos)
 
@@ -280,11 +275,30 @@ class Organizer(QDialog):
         if not rows:
             return
         to_remove = []
+        delmark = u"{}: ".format(DEL_NOTE)
         for row in rows:
             item = self.table.item(row, 0)
-            if not item or not item.text().startswith(NEW_NOTE):
+            if not item:
                 continue
-            to_remove.append(row)
+            value = item.text()
+            # New notes:
+            if value.startswith(NEW_NOTE): # remove
+                to_remove.append(row)
+                continue
+            # Existing notes:
+            if value.startswith(delmark): # remove deletion mark
+                new = value.replace(delmark, "")
+                item.setText(u"{}".format(new))
+                font = item.font()
+                font.setBold(False)
+                item.setFont(font)
+                item.setForeground(QBrush())
+            else: # apply deletion mark
+                item.setText(u"{}: {}".format(DEL_NOTE, value))
+                font = item.font()
+                font.setBold(True)
+                item.setFont(font)
+                item.setForeground(Qt.darkRed)
         for row in to_remove[::-1]: # in reverse to avoid updating idxs
             self.table.removeRow(row)
 
@@ -369,6 +383,8 @@ class Organizer(QDialog):
         if not item:
             return
         nid = item.text()
+        if ": " in nid: # ignore action markers
+            nid = nid.split(": ")[1]
         cids = self.mw.col.db.list(
                 "select id from cards where nid = ? order by ord", nid)
         for cid in cids:
@@ -381,7 +397,7 @@ class Organizer(QDialog):
         """Find and delete row by note ID"""
         for nid in nids:
             nid = str(nid)
-            cells = self.table.findItems(nid, Qt.MatchFixedString)
+            cells = self.table.findItems(nid, Qt.MatchEndsWith)
             if cells:
                 row = cells[0].row()
                 self.table.removeRow(row)
@@ -390,7 +406,7 @@ class Organizer(QDialog):
     def focusNid(self, nid):
         """Find and select row by note ID"""
         nid = str(nid)
-        cells = self.table.findItems(nid, Qt.MatchFixedString)
+        cells = self.table.findItems(nid, Qt.MatchEndsWith)
         if cells:
             self.table.setCurrentItem(cells[0])
 

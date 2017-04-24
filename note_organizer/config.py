@@ -20,5 +20,9 @@ HOTKEY_PASTE = "Ctrl+V"
 ASK_CONFIRMATION = False
 BACKUP_NIDS = True
 BACKUP_FIELD = "onid"
-NEW_NOTE = "New"
 DEFAULT_MODEL = "Basic"
+
+
+# Global variables
+NEW_NOTE = "New"
+DEL_NOTE = "Del"
