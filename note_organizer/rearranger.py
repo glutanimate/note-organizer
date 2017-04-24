@@ -35,6 +35,7 @@ class Rearranger:
         # Create checkpoint
         mw.checkpoint("Reorganize notes")
 
+
         print("\n" * 4)
 
         first = nids.pop(0)
@@ -58,10 +59,11 @@ class Rearranger:
                 if not any(nid>i for i in nids[idx:] if i not in self.moved):
                     last = nid
                     continue
-        
+
             new_nid = last + 1
+            if BACKUP_NIDS:
+                self.backupOriginalNid(nid)
             new_nid = self.updateNidSafely(nid, new_nid)
-            last = new_nid
 
             print("==================================")
             print("last", last)
@@ -71,6 +73,8 @@ class Rearranger:
 
             if nid in self.moved:
                 modified.append(new_nid)
+
+            last = new_nid
 
         mw.reset()
         self.selectNotes(modified)
@@ -94,11 +98,17 @@ class Rearranger:
         return new_nid
 
 
-    def backupOriginalNid(self, nid, new_nid):
-        pass
+    def backupOriginalNid(self, nid):
+        """Store original NID in a predefined field (if available)"""
+        note = mw.col.getNote(int(nid))
+        if BACKUP_FIELD in note and not note[BACKUP_FIELD]:
+            note[BACKUP_FIELD] = str(nid)
+        note.flush()
+
 
     def getDeck(self):
         pass
+
 
     def createNewNote(self):
         pass

@@ -18,4 +18,6 @@ HOTKEY_PASTE = "Ctrl+V"
 
 # Options
 ASK_CONFIRMATION = False
+BACKUP_NIDS = True
+BACKUP_FIELD = "onid"
 EMPTY_NOTE = "Empty note"

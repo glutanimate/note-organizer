@@ -133,6 +133,7 @@ class Organizer(QDialog):
             for col in range(mcolcnt):
                 index = m.index(row, col)
                 data_row.append(m.data(index, Qt.DisplayRole))
+            nids.append(nid)
             data.append(data_row)
         data.sort()
 
@@ -380,7 +381,7 @@ class Organizer(QDialog):
                 continue
             text = item.text()
             try:
-                val = int(text)
+                val = long(text)
             except ValueError:
                 val = text
             res.append(val)
