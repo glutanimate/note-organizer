@@ -12,6 +12,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 # Hotkey assignments
 HOTKEY_ORGANIZER = "Ctrl+R"
 HOTKEY_INSERT = "Ctrl+N"
+HOTKEY_DUPE = "Ctrl+D"
 HOTKEY_REMOVE = "Del"
 HOTKEY_CUT = "Ctrl+X"
 HOTKEY_PASTE = "Ctrl+V"
@@ -25,5 +26,6 @@ DEFAULT_MODEL = "Basic"
 
 # Global variables
 NEW_NOTE = "New"
+DUPE_NOTE = "Dupe"
 DEL_NOTE = "Del"
 MODEL_SAME = "Same note type as previous"

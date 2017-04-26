@@ -67,13 +67,15 @@ class Organizer(QDialog):
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.onTableContext)
 
-        insCut = QShortcut(QKeySequence(_(HOTKEY_INSERT)), 
+        s = QShortcut(QKeySequence(_(HOTKEY_INSERT)), 
                 self.table, activated=self.onInsertNote)
-        delCut = QShortcut(QKeySequence(_(HOTKEY_REMOVE)), 
+        s = QShortcut(QKeySequence(_(HOTKEY_DUPE)), 
+                self.table, activated=self.onDuplicateNote)
+        s = QShortcut(QKeySequence(_(HOTKEY_REMOVE)), 
                 self.table, activated=self.onRemoveNotes)
-        cutCut = QShortcut(QKeySequence(_(HOTKEY_CUT)), 
+        s = QShortcut(QKeySequence(_(HOTKEY_CUT)), 
                 self.table, activated=self.onCutRow)
-        pasteCut = QShortcut(QKeySequence(_(HOTKEY_PASTE)), 
+        s = QShortcut(QKeySequence(_(HOTKEY_PASTE)), 
                 self.table, activated=self.onPasteRow)
 
         # Sets up context sub-menu and hotkeys for various note types
@@ -246,6 +248,9 @@ class Organizer(QDialog):
         a = m.addAction("New note\t{}".format(HOTKEY_INSERT))
         a.triggered.connect(self.onInsertNote)
 
+        a = m.addAction("Duplicate note\t{}".format(HOTKEY_DUPE))
+        a.triggered.connect(self.onDuplicateNote)
+
         m.addMenu(self.models_menu)
 
         a = m.addAction("Remove\t{}".format(HOTKEY_REMOVE))
@@ -259,7 +264,7 @@ class Organizer(QDialog):
         rows = self.table.getSelectedRows()
         if not rows:
             return
-        row = rows[0]
+        row = rows[0] + 1
         self.table.insertRow(row)
         if not model:
             model = MODEL_SAME
@@ -270,6 +275,29 @@ class Organizer(QDialog):
         item.setFont(font)
         item.setForeground(Qt.darkGreen)
         self.table.setItem(row, 0, item)
+
+
+    def onDuplicateNote(self):
+        """Insert marker for duplicated note"""
+        rows = self.table.getSelectedRows()
+        if not rows:
+            return
+        row = rows[0]
+        new_row = row+1
+        self.table.insertRow(new_row)
+        for col in range(self.table.columnCount()):
+            if col == 0:
+                value = self.table.item(row, 0).text()
+                value = ''.join(i for i in value if i.isdigit())
+                data = u"{}: {}".format(DUPE_NOTE, value)
+                dupe = QTableWidgetItem(data)
+                font = dupe.font()
+                font.setBold(True)
+                dupe.setFont(font)
+                dupe.setForeground(Qt.darkBlue)
+            else:
+                dupe = QTableWidgetItem(self.table.item(row, col))
+            self.table.setItem(new_row, col, dupe)
 
 
     def onRemoveNotes(self):
@@ -285,7 +313,7 @@ class Organizer(QDialog):
                 continue
             value = item.text()
             # New notes:
-            if value.startswith(NEW_NOTE): # remove
+            if value.startswith((NEW_NOTE, DUPE_NOTE)): # remove
                 to_remove.append(row)
                 continue
             # Existing notes:
@@ -458,8 +486,9 @@ class Organizer(QDialog):
             except ValueError: # only add existing notes to moved
                 pass
 
-        to_delete = len([i for i in newnids if i.startswith(DEL_NOTE)])
-        to_add = len([i for i in newnids if i.startswith(NEW_NOTE)])
+        nn = newnids
+        to_delete = len([i for i in nn if i.startswith(DEL_NOTE)])
+        to_add = len([i for i in nn if i.startswith((NEW_NOTE, DUPE_NOTE))])
         to_move = len(moved)
 
         if not ASK_CONFIRMATION:
