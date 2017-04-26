@@ -348,7 +348,9 @@ class Organizer(QDialog):
                 dupe.setFont(font)
                 t.setItem(new_row, col, dupe)
                 if col == 0:
-                    t.modified.append(int(dupe.text()))
+                    value = dupe.text()
+                    if value not in t.modified:
+                        t.modified.append(value)
             t.clearSelection()
 
         # Remove old row
@@ -440,8 +442,16 @@ class Organizer(QDialog):
             tooltip("No changes performed")
             return False
 
+        modified_nids = []
+        for i in modified:
+            try:
+                modified_nids.append(int(i))
+            except ValueError:
+                pass
+
+
         if ASK_CONFIRMATION: # TODO: implement in options dialog
-            ret = askUser("This will <b>modify</b> the note creation date of at least "
+            ret = askUser("This will <b>modify</b> at least "
                 "<b>{}</b> notes (a lot more if other notes need to be shuffled, too)."
                 "<br><br>Are you sure you want to proceed?".format(len(modified)),
                 parent=self, defaultno=True, title="Please confirm changes")
@@ -457,7 +467,7 @@ class Organizer(QDialog):
                 continue
             text = item.text()
             try:
-                val = long(text)
+                val = int(text)
             except ValueError:
                 val = text
             res.append(val)
@@ -466,7 +476,7 @@ class Organizer(QDialog):
 
         self.close()
 
-        rearranger = Rearranger(self.browser, modified)
+        rearranger = Rearranger(self.browser, modified_nids)
         rearranger.rearrange(res, start)
 
 

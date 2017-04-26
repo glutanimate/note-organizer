@@ -22,7 +22,6 @@ BACKUP_NIDS = True
 BACKUP_FIELD = "onid"
 DEFAULT_MODEL = "Basic"
 
-
 # Global variables
 NEW_NOTE = "New"
 DEL_NOTE = "Del"

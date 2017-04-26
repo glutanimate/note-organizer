@@ -68,7 +68,9 @@ class NoteTable(QTableWidget):
                         dupe.setFont(font)
                         self.setItem(r, col, dupe)
                         if col == 0:
-                            self.modified.append(int(dupe.text()))
+                            value = dupe.text()
+                            if value not in self.modified:
+                                self.modified.append(value)
 
                 event.accept()
 
