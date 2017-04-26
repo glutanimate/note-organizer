@@ -30,7 +30,7 @@ class NoteTable(QTableWidget):
 
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
-        self.modified = []
+        self.moved = []
 
 
     def dropEvent(self, event):
@@ -69,8 +69,8 @@ class NoteTable(QTableWidget):
                         self.setItem(r, col, dupe)
                         if col == 0:
                             value = dupe.text()
-                            if value not in self.modified:
-                                self.modified.append(value)
+                            if value not in self.moved:
+                                self.moved.append(value)
 
                 event.accept()
 

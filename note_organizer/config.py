@@ -16,8 +16,8 @@ HOTKEY_REMOVE = "Del"
 HOTKEY_CUT = "Ctrl+X"
 HOTKEY_PASTE = "Ctrl+V"
 
-# Options
-ASK_CONFIRMATION = False
+# Options TODO: consider implementing in options dialog
+ASK_CONFIRMATION = True
 BACKUP_NIDS = True
 BACKUP_FIELD = "onid"
 DEFAULT_MODEL = "Basic"

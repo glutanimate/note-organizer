@@ -35,11 +35,16 @@ class Rearranger:
         # Create checkpoint
         mw.checkpoint("Reorganize notes")
 
-
         print("\n" * 4)
 
         last = 0
         for idx, nid in enumerate(nids):
+
+            try:
+                nid = int(nid)
+            except ValueError:
+                # TODO: perform action
+                continue
 
             if not self.noteExists(nid): # note deleted
                 continue

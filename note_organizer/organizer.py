@@ -30,19 +30,23 @@ class Organizer(QDialog):
         super(Organizer, self).__init__(parent=browser)
         self.browser = browser
         self.mw = browser.mw
-        self.clipboard = []
         self.f = organizer.Ui_Dialog()
         self.f.setupUi(self)
         self.table = NoteTable(self)
         self.hh = self.table.horizontalHeader()
         self.f.tableLayout.addWidget(self.table)
+        self.oldnids = []
+        self.clipboard = []
+        self.setupUi()
+        addHook("reset", self.onReset)
 
+
+    def setupUi(self):
         print("=====Performance benchmark=====")
         start = timer()
         self.fillTable()
         end = timer()
         print("total", end - start)    
-          
         self.setupDate()
         self.updateDate()
         self.setupHeaders()
@@ -52,8 +56,6 @@ class Organizer(QDialog):
         # focus currently selected card:
         if self.browser.card:
             self.focusNid(str(self.browser.card.nid))
-        addHook("reset", self.onReset)
-
 
     def setupEvents(self):
         """Connect event signals to slots"""
@@ -170,6 +172,7 @@ class Organizer(QDialog):
             nids.append(nid)
             data.append(data_row)
         data.sort()
+        self.oldnids = [i[0] for i in data]
 
         end = timer()
         print("getdata", end - start) 
@@ -252,7 +255,7 @@ class Organizer(QDialog):
 
 
     def onInsertNote(self, model=None):
-        """Insert empty row"""
+        """Insert marker for new note"""
         rows = self.table.getSelectedRows()
         if not rows:
             return
@@ -349,8 +352,8 @@ class Organizer(QDialog):
                 t.setItem(new_row, col, dupe)
                 if col == 0:
                     value = dupe.text()
-                    if value not in t.modified:
-                        t.modified.append(value)
+                    if value not in t.moved:
+                        t.moved.append(value)
             t.clearSelection()
 
         # Remove old row
@@ -436,48 +439,49 @@ class Organizer(QDialog):
 
     def onAccept(self):
         """Ask for confirmation, then call rearranger"""
-        modified = self.table.modified
-        if not modified:
-            self.close()
-            tooltip("No changes performed")
-            return False
-
-        modified_nids = []
-        for i in modified:
-            try:
-                modified_nids.append(int(i))
-            except ValueError:
-                pass
-
-
-        if ASK_CONFIRMATION: # TODO: implement in options dialog
-            ret = askUser("This will <b>modify</b> at least "
-                "<b>{}</b> notes (a lot more if other notes need to be shuffled, too)."
-                "<br><br>Are you sure you want to proceed?".format(len(modified)),
-                parent=self, defaultno=True, title="Please confirm changes")
-        else:
-            ret = True
-        if not ret:
-            return False
-
-        res = []
+        newnids = []
         for row in range(self.table.rowCount()):
             item = self.table.item(row, 0)
             if not item: # should not happen
                 continue
-            text = item.text()
+            newnids.append(item.text())
+
+        if newnids == self.oldnids:
+            self.close()
+            tooltip("No changes performed")
+            return False
+
+        moved = []
+        for i in self.table.moved:
             try:
-                val = int(text)
-            except ValueError:
-                val = text
-            res.append(val)
-        
-        start = self.getDate()
+                moved.append(int(i))
+            except ValueError: # only add existing notes to moved
+                pass
+
+        to_delete = len([i for i in newnids if i.startswith(DEL_NOTE)])
+        to_add = len([i for i in newnids if i.startswith(NEW_NOTE)])
+        to_move = len(moved)
+
+        if not ASK_CONFIRMATION:
+            pass
+        else:
+            ret = askUser("Overview of <b>changes</b>:"
+                "<ul style='margin-left: 0'>"
+                "<li><b>Move</b> at least <b>{}</b> note(s)"
+                "<br>(other notes might have to be moved alongside)</li>"
+                "<li><b>Remove {}</b> note(s)</li>"
+                "<li><b>Create {}</b> new note(s)</li></ul>"
+                "Are you sure you want to <b>proceed</b>?".format(to_move, to_delete, to_add),
+                parent=self, defaultno=True, title="Please confirm action")
+            if not ret:
+                return False
+          
+        start = self.getDate() # TODO: identify cases where only date modified
 
         self.close()
 
-        rearranger = Rearranger(self.browser, modified_nids)
-        rearranger.rearrange(res, start)
+        rearranger = Rearranger(self.browser, moved)
+        rearranger.rearrange(newnids, start)
 
 
     def onReject(self):
