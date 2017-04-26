@@ -262,7 +262,7 @@ class Organizer(QDialog):
         row = rows[0]
         self.table.insertRow(row)
         if not model:
-            model = "Same as previous"
+            model = MODEL_SAME
         data = u"{}: {}".format(NEW_NOTE, model)
         item = QTableWidgetItem(data)
         font = item.font()

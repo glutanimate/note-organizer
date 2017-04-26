@@ -41,18 +41,30 @@ class Rearranger:
         for idx, nid in enumerate(nids):
 
             try:
+                nxt = nids[idx+1]
+            except IndexError:
+                nxt = None
+
+            try:
                 nid = int(nid)
             except ValueError:
-                # TODO: perform action
-                continue
+                vals = nid.split(": ")
+                if not vals or len(vals) < 2: # should not happen
+                    continue
+                action = vals[0]
+                if action == DEL_NOTE:
+                    nid = int(vals[1])
+                    self.removeNote()
+                    continue
+                elif action == NEW_NOTE:
+                    ntype = "".join(vals[1:])
+                    nid = self.addNote(last, ntype)
+
+            if not nxt: # have to do this after processing new notes
+                nxt = nid +1
 
             if not self.noteExists(nid): # note deleted
                 continue
-
-            try:
-                nxt = nids[idx+1]
-            except IndexError:
-                nxt = nid+1
 
             # check if order as expected
             if last != 0 and last < nid < nxt:
@@ -89,6 +101,13 @@ class Rearranger:
         mw.reset()
         self.selectNotes(modified)
         tooltip("Reorganized {} notes.".format(len(modified)))
+
+
+    def addNote(self, last, ntype):
+        pass
+
+    def removeNote(self, nid):
+        self.col.remNotes([nid])
 
 
     def noteExists(self, nid):
