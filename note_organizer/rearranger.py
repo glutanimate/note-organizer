@@ -42,8 +42,8 @@ class Rearranger:
         for idx, nid in enumerate(nids):
 
             try:
-                nxt = nids[idx+1]
-            except IndexError:
+                nxt = int(nids[idx+1])
+            except (IndexError, ValueError):
                 nxt = None
 
             try: # regular nid
@@ -73,6 +73,7 @@ class Rearranger:
             if not self.noteExists(nid): # note deleted
                 continue
 
+            print "last", last
             # check if order as expected
             if last != 0 and last < nid < nxt:
                 # above check won't work if we moved an entire block,
@@ -84,7 +85,7 @@ class Rearranger:
 
             if last != 0:
                 new_nid = last + 1 # regular nids
-            elif start and start != nid:
+            elif start and start != (nid // 1000):
                 new_nid = start # first nid, date changed
             else:
                 last = nid # first nid, date unmodified
@@ -171,6 +172,7 @@ select id from notes where id = ?""", nid)
     def updateNidSafely(self, nid, new_nid):
         """Update nid while ensuring that timestamp doesn't already exist"""
         while self.noteExists(new_nid):
+            print "testing", new_nid
             new_nid += 1
 
         # Update note row
@@ -190,14 +192,6 @@ select id from notes where id = ?""", nid)
         if BACKUP_FIELD in note and not note[BACKUP_FIELD]:
             note[BACKUP_FIELD] = str(nid)
         note.flush()
-
-
-    def getDeck(self):
-        pass
-
-
-    def createNewNote(self):
-        pass
 
 
     def selectNotes(self, nids):

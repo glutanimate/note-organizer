@@ -230,7 +230,7 @@ class Organizer(QDialog):
         if not qtime.isValid():
             return None
         timestamp = qtime.toTime_t()
-        return timestamp * 1000
+        return timestamp
 
 
     def onTableContext(self, pos):
