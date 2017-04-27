@@ -9,7 +9,7 @@ Copyright: (c) Glutanimate 2017
 License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.html
 """
 
-from timeit import default_timer as timer
+# from timeit import default_timer as timer
 
 from anki.hooks import addHook, remHook
 
@@ -42,11 +42,11 @@ class Organizer(QDialog):
 
 
     def setupUi(self):
-        print("=====Performance benchmark=====")
-        start = timer()
+        # print("=====Performance benchmark=====")
+        # start = timer()
         self.fillTable()
-        end = timer()
-        print("total", end - start)    
+        # end = timer()
+        # print("total", end - start)    
         self.setupDate()
         self.updateDate()
         self.setupHeaders()
@@ -156,7 +156,7 @@ class Organizer(QDialog):
             idxs = None
 
         # eliminate duplicates, get data, and sort it by nid
-        start = timer()
+        # start = timer()
         for row, cid in enumerate(sel):
             if idxs:
                 row = idxs[row].row()
@@ -176,11 +176,11 @@ class Organizer(QDialog):
         data.sort()
         self.oldnids = [i[0] for i in data]
 
-        end = timer()
-        print("getdata", end - start) 
+        # end = timer()
+        # print("getdata", end - start) 
 
         # set table data
-        start = timer()
+        # start = timer()
         coldict = dict(b.columns)
         headers = ["Note ID"] + [coldict[key] for key in mcol]
         row_count = len(data)
@@ -197,8 +197,8 @@ class Organizer(QDialog):
                 item.setFont(f)
                 t.setItem(row,col,item)
 
-        end = timer()
-        print("setdata", end - start)
+        # end = timer()
+        # print("setdata", end - start)
 
         self.setWindowTitle("Reorganize Notes ({} notes shown)".format(row_count))
 
