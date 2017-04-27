@@ -27,6 +27,8 @@ class Rearranger:
     def rearrange(self, nids, start):
         """Adjust nid order"""
         modified = []
+        deleted = []
+        created = []
         # Full database sync required:
         try:
             self.mw.col.modSchema(check=True)
@@ -56,6 +58,7 @@ class Rearranger:
                 if action == DEL_NOTE:
                     nid = int(vals[1])
                     self.removeNote(nid)
+                    deleted.append(nid)
                     continue
                 elif action in (NEW_NOTE, DUPE_NOTE):
                     dupe = action == DUPE_NOTE
@@ -66,6 +69,7 @@ class Rearranger:
                         ntype = "".join(vals[1:])
                         sample_nid = last or nxt
                     nid = self.addNote(ntype, sample_nid, dupe)
+                    created.append(nid)
 
             if not nxt: # have to do this after processing new notes
                 nxt = nid + 1
@@ -101,7 +105,7 @@ class Rearranger:
             print("next", nxt)
             print("->new", new_nid)
 
-            if nid in self.moved:
+            if nid in self.moved and nid not in created:
                 modified.append(new_nid)
 
             # keep track of moved nids (e.g. for dupes)
@@ -110,7 +114,11 @@ class Rearranger:
 
         self.mw.reset()
         self.selectNotes(modified)
-        tooltip("Reorganized {} notes.".format(len(modified)),
+        tooltip(u"Reorganization complete:<br>"
+            u"≥<b>{}</b> note(s) <b>moved</b><br>"
+            u"<b>{}</b> note(s) <b>deleted</b><br>"
+            u"<b>{}</b> note(s) <b>created</b>".format(
+                len(modified), len(deleted), len(created)),
             parent=self.browser)
 
 
