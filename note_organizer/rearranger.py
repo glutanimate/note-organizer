@@ -86,7 +86,7 @@ class Rearranger:
             if last != 0:
                 new_nid = last + 1 # regular nids
             elif start and start != (nid // 1000):
-                new_nid = start # first nid, date changed
+                new_nid = start * 1000 # first nid, date changed
             else:
                 last = nid # first nid, date unmodified
                 continue
@@ -110,7 +110,8 @@ class Rearranger:
 
         self.mw.reset()
         self.selectNotes(modified)
-        tooltip("Reorganized {} notes.".format(len(modified)))
+        tooltip("Reorganized {} notes.".format(len(modified)),
+            parent=self.browser)
 
 
     def addNote(self, ntype, sample_nid, dupe):

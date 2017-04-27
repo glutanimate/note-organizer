@@ -288,8 +288,11 @@ class Organizer(QDialog):
         for col in range(self.table.columnCount()):
             if col == 0:
                 value = self.table.item(row, 0).text()
-                value = ''.join(i for i in value if i.isdigit())
-                data = u"{}: {}".format(DUPE_NOTE, value)
+                nid = ''.join(i for i in value if i.isdigit())
+                if value.startswith(DEL_NOTE) or not nid:
+                    self.table.removeRow(new_row)
+                    return
+                data = u"{}: {}".format(DUPE_NOTE, nid)
                 dupe = QTableWidgetItem(data)
                 font = dupe.font()
                 font.setBold(True)
