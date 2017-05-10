@@ -69,6 +69,8 @@ class Rearranger:
                         ntype = "".join(vals[1:])
                         sample_nid = last or nxt
                     nid = self.addNote(ntype, sample_nid, dupe)
+                    if not nid:
+                        continue
                     created.append(nid)
 
             if not nxt: # have to do this after processing new notes
@@ -128,8 +130,12 @@ class Rearranger:
         sample = self.mw.col.getNote(sample_nid)
         cids = self.mw.col.db.list(
                 "select id from cards where nid = ? order by ord", sample_nid)
-        # try to use visible card; fall back to first card if necessary
-        sample_cid = cids[0]
+        try:
+            sample_cid = cids[0]
+        except IndexError:
+            # invalid state: note has no cards
+            return None
+        # try to use visible card if available
         for cid in cids:
             if cid in self.browser.model.cards:
                 sample_cid = cid
@@ -160,7 +166,8 @@ class Rearranger:
             new_note.tags = sample.tags
             new_note.fields = sample.fields
         else:
-            new_note.fields[0] = "Empty note"
+            # need to fill all fields to avoid notes without cards
+            new_note.fields = ["empty note"] * len(new_note.fields)
 
         # Refresh note and add to database
         new_note.flush()
