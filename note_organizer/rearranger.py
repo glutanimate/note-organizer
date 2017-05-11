@@ -25,10 +25,6 @@ class Rearranger:
 
 
     def rearrange(self, nids, start):
-        """Adjust nid order"""
-        modified = []
-        deleted = []
-        created = []
         # Full database sync required:
         try:
             self.mw.col.modSchema(check=True)
@@ -38,11 +34,26 @@ class Rearranger:
         # Create checkpoint
         self.mw.checkpoint("Reorganize notes")
 
-        print("\n" * 4)
+        modified, deleted, created = self.processNids(nids, start)
 
+        self.mw.reset()
+        self.selectNotes(modified + created)
+        tooltip(u"Reorganization complete:<br>"
+            u"≥<b>{}</b> note(s) <b>moved</b><br>"
+            u"<b>{}</b> note(s) <b>deleted</b><br>"
+            u"<b>{}</b> note(s) <b>created</b>".format(
+                len(modified), len(deleted), len(created)),
+            parent=self.browser)
+
+
+    def processNids(self, nids, start):
+        """Adjust nid order"""
+        modified = []
+        deleted = []
+        created = []
         last = 0
-        for idx, nid in enumerate(nids):
 
+        for idx, nid in enumerate(nids):
             try:
                 nxt = int(nids[idx+1])
             except (IndexError, ValueError):
@@ -79,33 +90,34 @@ class Rearranger:
             if not self.noteExists(nid): # note deleted
                 continue
 
-            print "last", last
+
+            print("------------------------------")
+            print("last", last)
+            print("current", nid)
+            print("next", nxt)
+            print("nextmoved", nxt in self.moved)
+            print("expected", last < nid < nxt)
             # check if order as expected
-            if last != 0 and last < nid < nxt:
-                # above check won't work if we moved an entire block,
-                # so we need to check against all remaining indices
-                # (excluding the ones that we know have been moved)
-                if not any(nid>i for i in nids[idx:] if i not in self.moved):
-                    last = nid
-                    continue
+            if nxt not in self.moved and last != 0 and last < nid < nxt:
+                print("skipping")
+                last = nid
+                continue
 
             if last != 0:
                 new_nid = last + 1 # regular nids
             elif start and start != (nid // 1000):
                 new_nid = start * 1000 # first nid, date changed
             else:
+                print("skipping first nid")
                 last = nid # first nid, date unmodified
                 continue
+
+            print("modifying")
             
             if BACKUP_NIDS:
                 self.backupOriginalNid(nid)
+            
             new_nid = self.updateNidSafely(nid, new_nid)
-
-            print("==================================")
-            print("last", last)
-            print("current", nid)
-            print("next", nxt)
-            print("->new", new_nid)
 
             if nid in self.moved and nid not in created:
                 modified.append(new_nid)
@@ -114,14 +126,9 @@ class Rearranger:
             self.nid_map[nid] = new_nid
             last = new_nid
 
-        self.mw.reset()
-        self.selectNotes(modified)
-        tooltip(u"Reorganization complete:<br>"
-            u"≥<b>{}</b> note(s) <b>moved</b><br>"
-            u"<b>{}</b> note(s) <b>deleted</b><br>"
-            u"<b>{}</b> note(s) <b>created</b>".format(
-                len(modified), len(deleted), len(created)),
-            parent=self.browser)
+            print("new_nid", new_nid)
+
+        return modified, deleted, created
 
 
     def addNote(self, ntype, sample_nid, dupe):
@@ -175,20 +182,20 @@ class Rearranger:
         
         return new_note.id
 
+
     def removeNote(self, nid):
         self.mw.col.remNotes([nid])
 
 
     def noteExists(self, nid):
         """Checks the database to see whether the nid is actually assigned"""
-        return self.mw.col.db.scalar("""
-select id from notes where id = ?""", nid)
+        return self.mw.col.db.scalar(
+            """select id from notes where id = ?""", nid)
 
 
     def updateNidSafely(self, nid, new_nid):
         """Update nid while ensuring that timestamp doesn't already exist"""
         while self.noteExists(new_nid):
-            print "testing", new_nid
             new_nid += 1
 
         # Update note row
