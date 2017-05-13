@@ -500,10 +500,11 @@ class Organizer(QDialog):
         else:
             ret = askUser("Overview of <b>changes</b>:"
                 "<ul style='margin-left: 0'>"
-                "<li><b>Move</b> at least <b>{}</b> note(s)"
-                "<br>(other notes might have to be moved alongside)</li>"
+                "<li><b>Move</b> at least <b>{}</b> note(s)</li>"
                 "<li><b>Remove {}</b> note(s)</li>"
                 "<li><b>Create {}</b> new note(s)</li></ul>"
+                "Additional notes might have to be updated "
+                "to allow for the changes above.<br><br>"
                 "Are you sure you want to <b>proceed</b>?".format(to_move, to_delete, to_add),
                 parent=self, defaultno=True, title="Please confirm action")
             if not ret:

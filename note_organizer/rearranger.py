@@ -39,12 +39,14 @@ class Rearranger:
         modified = self.rearrange(nids, start, moved, created)
 
         self.mw.reset()
-        self.selectNotes(modified + created)
+        self.selectNotes(moved + created)
         tooltip(u"Reorganization complete:<br>"
-            u"≥<b>{}</b> note(s) <b>moved</b><br>"
+            u"<b>{}</b> note(s) <b>moved</b><br>"
             u"<b>{}</b> note(s) <b>deleted</b><br>"
-            u"<b>{}</b> note(s) <b>created</b>".format(
-                len(moved), len(deleted), len(created)),
+            u"<b>{}</b> note(s) <b>created</b><br>"
+            u"<b>{}</b> note(s) <b>updated alongside</b><br>".format(
+                len(moved), len(deleted), len(created), 
+                len(modified)-len(moved)),
             parent=self.browser)
 
 
