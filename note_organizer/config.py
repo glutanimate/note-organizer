@@ -10,7 +10,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 """
 
 # Hotkey assignments
-HOTKEY_ORGANIZER = "Ctrl+R"
+HOTKEY_ORGANIZER = "Ctrl+G"
 HOTKEY_INSERT = "Ctrl+N"
 HOTKEY_DUPE = "Ctrl+D"
 HOTKEY_REMOVE = "Del"
