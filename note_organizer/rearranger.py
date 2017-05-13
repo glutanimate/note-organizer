@@ -13,6 +13,7 @@ from anki.errors import AnkiError
 
 from aqt.utils import tooltip
 from config import *
+from consts import *
 
 class Rearranger:
     """Performs the actual database reorganization"""
@@ -24,6 +25,7 @@ class Rearranger:
 
 
     def processNids(self, nids, start, moved):
+        """Main function"""
         # Full database sync required:
         try:
             self.mw.col.modSchema(check=True)
@@ -34,8 +36,7 @@ class Rearranger:
         self.mw.checkpoint("Reorganize notes")
 
         nids, deleted, created = self.processActions(nids)
-        moved += created
-        modified = self.rearrange(nids, start, moved)
+        modified = self.rearrange(nids, start, moved, created)
 
         self.mw.reset()
         self.selectNotes(modified + created)
@@ -43,11 +44,26 @@ class Rearranger:
             u"≥<b>{}</b> note(s) <b>moved</b><br>"
             u"<b>{}</b> note(s) <b>deleted</b><br>"
             u"<b>{}</b> note(s) <b>created</b>".format(
-                len(modified), len(deleted), len(created)),
+                len(moved), len(deleted), len(created)),
             parent=self.browser)
 
 
+    def findSample(self, nids):
+        """Find valid nid in nids list"""
+        sample = None
+        for nid in nids:
+            try:
+                sample = int(nid)
+                if self.noteExists(sample):
+                    break
+            except ValueError:
+                continue
+        return sample
+
+
     def processActions(self, nids):
+        """Parse and execute actions in nid list (e.g. note creation)"""
+        """Also converts nids to ints"""
         processed = []
         deleted = []
         created = []
@@ -94,20 +110,10 @@ class Rearranger:
         return processed, deleted, created
 
 
-    def findSample(self, nids):
-        sample = None
-        for nid in nids:
-            try:
-                sample = int(nid)
-                break
-            except ValueError:
-                continue
-        return sample
-
-
-    def rearrange(self, nids, start, moved):
+    def rearrange(self, nids, start, moved, created):
         """Adjust nid order"""
         modified = []
+        alterated = moved + created
         last = 0
 
         for idx, nid in enumerate(nids):
@@ -127,7 +133,7 @@ class Rearranger:
             print("expected", last < nid < nxt)
             # check if order as expected
             if last != 0 and last < nid < nxt:
-                if nid in moved and nxt in moved:
+                if nid in alterated and nxt in alterated:
                     print("moved block")
                     pass
                 else:
@@ -151,13 +157,14 @@ class Rearranger:
             
             new_nid = self.updateNidSafely(nid, new_nid)
 
-            modified.append(new_nid)
+            if nid not in created:
+                modified.append(new_nid)
 
             # keep track of moved nids (e.g. for dupes)
             self.nid_map[nid] = new_nid
-            last = new_nid
-
+            
             print("new_nid", new_nid)
+            last = new_nid
 
         return modified
 
@@ -229,6 +236,13 @@ class Rearranger:
         while self.noteExists(new_nid):
             new_nid += 1
 
+        # Leave some room for future changes when possible
+        for i in xrange(20):
+            new_nid += 1
+            if self.noteExists(new_nid):
+                new_nid -= 1
+                break
+
         # Update note row
         self.mw.col.db.execute(
             """update notes set id=? where id = ?""", new_nid, nid)
@@ -250,10 +264,10 @@ class Rearranger:
 
     def selectNotes(self, nids):
         """Select browser entries by note id"""
-        sm = self.browser.form.tableView.selectionModel()
-        sm.clear()
+        self.browser.form.tableView.selectionModel().clear()
         cids = []
         for nid in nids:
+            nid = self.nid_map.get(nid, nid)
             cids += self.mw.col.db.list(
                 "select id from cards where nid = ? order by ord", nid)
         self.browser.model.selectedCards = {cid: True for cid in cids}

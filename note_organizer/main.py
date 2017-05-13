@@ -16,6 +16,7 @@ from anki.hooks import addHook, wrap
 
 from .organizer import Organizer
 from .config import *
+from .consts import *
 
    
 def onBrowserRowChanged(self, current, previous):
