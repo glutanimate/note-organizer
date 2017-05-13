@@ -17,14 +17,13 @@ from config import *
 class Rearranger:
     """Performs the actual database reorganization"""
 
-    def __init__(self, browser, moved):
+    def __init__(self, browser):
         self.browser = browser
         self.mw = self.browser.mw
-        self.moved = moved
         self.nid_map = {}
 
 
-    def rearrange(self, nids, start):
+    def processNids(self, nids, start, moved):
         # Full database sync required:
         try:
             self.mw.col.modSchema(check=True)
@@ -34,7 +33,9 @@ class Rearranger:
         # Create checkpoint
         self.mw.checkpoint("Reorganize notes")
 
-        modified, deleted, created = self.processNids(nids, start)
+        nids, deleted, created = self.processActions(nids)
+        moved += created
+        modified = self.rearrange(nids, start, moved)
 
         self.mw.reset()
         self.selectNotes(modified + created)
@@ -46,62 +47,93 @@ class Rearranger:
             parent=self.browser)
 
 
-    def processNids(self, nids, start):
-        """Adjust nid order"""
-        modified = []
+    def processActions(self, nids):
+        processed = []
         deleted = []
         created = []
         last = 0
 
         for idx, nid in enumerate(nids):
             try:
+                processed.append(int(nid))
+                continue
+            except ValueError:
+                vals = nid.split(": ")
+
+            try:
                 nxt = int(nids[idx+1])
             except (IndexError, ValueError):
                 nxt = None
 
-            try: # regular nid
-                nid = int(nid)
-            except ValueError: # action
-                vals = nid.split(": ")
-                if not vals or len(vals) < 2: # should not happen
+            action = vals[0]
+            data = vals[1:]
+            if action == DEL_NOTE:
+                nnid = int(data[0])
+                if not nnid or not self.noteExists(nnid):
                     continue
-                action = vals[0]
-                if action == DEL_NOTE:
-                    nid = int(vals[1])
-                    self.removeNote(nid)
-                    deleted.append(nid)
+                self.removeNote(nnid)
+                deleted.append(nnid)
+                continue
+            elif action in (NEW_NOTE, DUPE_NOTE):
+                if action == DUPE_NOTE:
+                    ntype = None
+                    sample = int(data[0])
+                else:
+                    ntype = "".join(data)
+                    sample = last or nxt or self.findSample(nids)
+                if not sample or not self.noteExists(sample):
                     continue
-                elif action in (NEW_NOTE, DUPE_NOTE):
-                    dupe = action == DUPE_NOTE
-                    if dupe:
-                        ntype = MODEL_SAME
-                        sample_nid = int(vals[1])
-                    else:
-                        ntype = "".join(vals[1:])
-                        sample_nid = last or nxt
-                    nid = self.addNote(ntype, sample_nid, dupe)
-                    if not nid:
-                        continue
-                    created.append(nid)
+                nid = self.addNote(sample, ntype)
+                if not nid:
+                    continue
+                created.append(int(nid))
+                processed.append(int(nid))
 
-            if not nxt: # have to do this after processing new notes
+            last = nid
+
+        return processed, deleted, created
+
+
+    def findSample(self, nids):
+        sample = None
+        for nid in nids:
+            try:
+                sample = int(nid)
+                break
+            except ValueError:
+                continue
+        return sample
+
+
+    def rearrange(self, nids, start, moved):
+        """Adjust nid order"""
+        modified = []
+        last = 0
+
+        for idx, nid in enumerate(nids):
+            try:
+                nxt = int(nids[idx+1])
+            except (IndexError, ValueError):
                 nxt = nid + 1
 
             if not self.noteExists(nid): # note deleted
                 continue
 
-
             print("------------------------------")
             print("last", last)
             print("current", nid)
             print("next", nxt)
-            print("nextmoved", nxt in self.moved)
+            print("nextmoved", nxt in moved)
             print("expected", last < nid < nxt)
             # check if order as expected
-            if nxt not in self.moved and last != 0 and last < nid < nxt:
-                print("skipping")
-                last = nid
-                continue
+            if last != 0 and last < nid < nxt:
+                if nid in moved and nxt in moved:
+                    print("moved block")
+                    pass
+                else:
+                    print("skipping")
+                    last = nid
+                    continue
 
             if last != 0:
                 new_nid = last + 1 # regular nids
@@ -119,8 +151,7 @@ class Rearranger:
             
             new_nid = self.updateNidSafely(nid, new_nid)
 
-            if nid in self.moved and nid not in created:
-                modified.append(new_nid)
+            modified.append(new_nid)
 
             # keep track of moved nids (e.g. for dupes)
             self.nid_map[nid] = new_nid
@@ -128,10 +159,10 @@ class Rearranger:
 
             print("new_nid", new_nid)
 
-        return modified, deleted, created
+        return modified
 
 
-    def addNote(self, ntype, sample_nid, dupe):
+    def addNote(self, sample_nid, ntype=None):
         """Create new note based on sample nid"""
         sample_nid = self.nid_map.get(sample_nid, sample_nid)
         sample = self.mw.col.getNote(sample_nid)
@@ -169,12 +200,12 @@ class Rearranger:
         
         # Create new note
         new_note = self.mw.col.newNote()
-        if dupe:
+        if not ntype: # dupe
             new_note.tags = sample.tags
             new_note.fields = sample.fields
         else:
             # need to fill all fields to avoid notes without cards
-            new_note.fields = ["empty note"] * len(new_note.fields)
+            new_note.fields = ["placeholder"] * len(new_note.fields)
 
         # Refresh note and add to database
         new_note.flush()

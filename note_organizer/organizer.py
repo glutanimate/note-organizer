@@ -512,8 +512,8 @@ class Organizer(QDialog):
 
         self.close()
 
-        rearranger = Rearranger(self.browser, moved)
-        rearranger.rearrange(newnids, start)
+        rearranger = Rearranger(self.browser)
+        rearranger.processNids(newnids, start, moved)
 
 
     def onReject(self):
