@@ -154,7 +154,7 @@ class Rearranger:
 
             print("modifying")
             
-            if BACKUP_NIDS:
+            if BACKUP_NIDS and nid not in created:
                 self.backupOriginalNid(nid)
             
             new_nid = self.updateNidSafely(nid, new_nid)
@@ -209,13 +209,14 @@ class Rearranger:
         
         # Create new note
         new_note = self.mw.col.newNote()
+        new_note.tags = sample.tags
         if not ntype: # dupe
-            new_note.tags = sample.tags
-            new_note.fields = sample.fields
+            fields = sample.fields
         else:
             # need to fill all fields to avoid notes without cards
-            new_note.fields = ["placeholder"] * len(new_note.fields)
-
+            fields = ["."] * len(new_note.fields)
+        new_note = self.fillFields(new_note, fields)
+        
         # Refresh note and add to database
         new_note.flush()
         self.mw.col.addNote(new_note)
@@ -223,6 +224,16 @@ class Rearranger:
         return new_note.id
 
 
+    def fillFields(self, note, fields):
+        """Fill fields of newly created notes"""
+        note.fields = fields
+        if BACKUP_FIELD in note: # skip onid field
+            note["onid"] = ""
+        if NID_FIELD in note: # add nid to note id field
+            note["Note ID"] = str(note.id)
+        return note
+
+    
     def removeNote(self, nid):
         self.mw.col.remNotes([nid])
 
