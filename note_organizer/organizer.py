@@ -72,6 +72,8 @@ class Organizer(QDialog):
                 self.table, activated=self.onInsertNote)
         s = QShortcut(QKeySequence(_(HOTKEY_DUPE)), 
                 self.table, activated=self.onDuplicateNote)
+        s = QShortcut(QKeySequence(_(HOTKEY_DUPE_SCHED)), 
+                self.table, activated=lambda: self.onDuplicateNote(sched=True))
         s = QShortcut(QKeySequence(_(HOTKEY_REMOVE)), 
                 self.table, activated=self.onRemoveNotes)
         s = QShortcut(QKeySequence(_(HOTKEY_CUT)), 
@@ -252,6 +254,10 @@ class Organizer(QDialog):
         a = m.addAction("Duplicate note\t{}".format(HOTKEY_DUPE))
         a.triggered.connect(self.onDuplicateNote)
 
+        a = m.addAction(
+            "Duplicate note (with scheduling)\t{}".format(HOTKEY_DUPE_SCHED))
+        a.triggered.connect(lambda: self.onDuplicateNote(sched=True))
+
         m.addMenu(self.models_menu)
 
         a = m.addAction("Remove\t{}".format(HOTKEY_REMOVE))
@@ -278,7 +284,7 @@ class Organizer(QDialog):
         self.table.setItem(row, 0, item)
 
 
-    def onDuplicateNote(self):
+    def onDuplicateNote(self, sched=False):
         """Insert marker for duplicated note"""
         rows = self.table.getSelectedRows()
         if not rows:
@@ -286,6 +292,7 @@ class Organizer(QDialog):
         row = rows[0]
         new_row = row+1
         self.table.insertRow(new_row)
+        marker = DUPE_NOTE if not sched else DUPE_NOTE_SCHED
         for col in range(self.table.columnCount()):
             if col == 0:
                 value = self.table.item(row, 0).text()
@@ -293,7 +300,7 @@ class Organizer(QDialog):
                 if value.startswith(DEL_NOTE) or not nid:
                     self.table.removeRow(new_row)
                     return
-                data = u"{}: {}".format(DUPE_NOTE, nid)
+                data = u"{}: {}".format(marker, nid)
                 dupe = QTableWidgetItem(data)
                 font = dupe.font()
                 font.setBold(True)

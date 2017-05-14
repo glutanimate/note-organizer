@@ -13,6 +13,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 HOTKEY_ORGANIZER = "Ctrl+G"
 HOTKEY_INSERT = "Ctrl+N"
 HOTKEY_DUPE = "Ctrl+D"
+HOTKEY_DUPE_SCHED = "Ctrl+Shift+D"
 HOTKEY_REMOVE = "Del"
 HOTKEY_CUT = "Ctrl+X"
 HOTKEY_PASTE = "Ctrl+V"

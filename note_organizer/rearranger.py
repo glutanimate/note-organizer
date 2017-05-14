@@ -12,6 +12,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 from anki.errors import AnkiError
 
 from aqt.utils import tooltip
+from anki.utils import intTime
 from config import *
 from consts import *
 
@@ -38,6 +39,7 @@ class Rearranger:
         nids, deleted, created = self.processActions(nids)
         modified = self.rearrange(nids, start, moved, created)
 
+        self.mw.col.reset()
         self.mw.reset()
         self.selectNotes(moved + created)
         tooltip(u"Reorganization complete:<br>"
@@ -92,16 +94,18 @@ class Rearranger:
                 self.removeNote(nnid)
                 deleted.append(nnid)
                 continue
-            elif action in (NEW_NOTE, DUPE_NOTE):
-                if action == DUPE_NOTE:
-                    ntype = None
+            elif action.startswith((NEW_NOTE, DUPE_NOTE)):
+                sched = False
+                ntype = None
+                if action.startswith(DUPE_NOTE):
                     sample = int(data[0])
+                    sched = action == DUPE_NOTE_SCHED
                 else:
                     ntype = "".join(data)
                     sample = last or nxt or self.findSample(nids)
                 if not sample or not self.noteExists(sample):
                     continue
-                nid = self.addNote(sample, ntype)
+                nid = self.addNote(sample, ntype=ntype, sched=sched)
                 if not nid:
                     continue
                 created.append(int(nid))
@@ -171,7 +175,7 @@ class Rearranger:
         return modified
 
 
-    def addNote(self, sample_nid, ntype=None):
+    def addNote(self, sample_nid, ntype=None, sched=False):
         """Create new note based on sample nid"""
         sample_nid = self.nid_map.get(sample_nid, sample_nid)
         sample = self.mw.col.getNote(sample_nid)
@@ -220,8 +224,24 @@ class Rearranger:
         # Refresh note and add to database
         new_note.flush()
         self.mw.col.addNote(new_note)
-        
+
+        # Copy over scheduling from old cards
+        if sched:
+            scards = sample.cards()
+            ncards = new_note.cards()
+            for orig, copy in zip(scards, ncards):
+                self.copyCardScheduling(orig, copy)
+
         return new_note.id
+
+
+    def copyCardScheduling(self, o, c):
+        """Copy scheduling data over from original card"""
+        self.mw.col.db.execute(
+            "update cards set type=?, queue=?, due=?, ivl=?, "
+            "factor=?, reps=?, lapses=?, left=? where id = ?",
+            o.type, o.queue, o.due, o.ivl,
+            o.factor, o.reps, o.lapses, o.left, c.id)
 
 
     def fillFields(self, note, fields):
