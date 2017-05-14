@@ -158,13 +158,16 @@ class Rearranger:
 
             print("modifying")
             
-            if BACKUP_NIDS and nid not in created:
-                self.backupOriginalNid(nid)
             
             new_nid = self.updateNidSafely(nid, new_nid)
 
             if nid not in created:
                 modified.append(new_nid)
+                idnote = False
+            else:
+                idnote = True
+
+            self.setNidFields(new_nid, nid, idnote=idnote)
 
             # keep track of moved nids (e.g. for dupes)
             self.nid_map[nid] = new_nid
@@ -219,7 +222,9 @@ class Rearranger:
         else:
             # need to fill all fields to avoid notes without cards
             fields = ["."] * len(new_note.fields)
-        new_note = self.fillFields(new_note, fields)
+        new_note.fields = fields
+        if BACKUP_FIELD in new_note: # skip onid field
+            new_note[BACKUP_FIELD] = ""
         
         # Refresh note and add to database
         new_note.flush()
@@ -242,16 +247,6 @@ class Rearranger:
             "factor=?, reps=?, lapses=?, left=? where id = ?",
             o.type, o.queue, o.due, o.ivl,
             o.factor, o.reps, o.lapses, o.left, c.id)
-
-
-    def fillFields(self, note, fields):
-        """Fill fields of newly created notes"""
-        note.fields = fields
-        if BACKUP_FIELD in note: # skip onid field
-            note["onid"] = ""
-        if NID_FIELD in note: # add nid to note id field
-            note["Note ID"] = str(note.id)
-        return note
 
     
     def removeNote(self, nid):
@@ -287,11 +282,13 @@ class Rearranger:
         return new_nid
 
 
-    def backupOriginalNid(self, nid):
+    def setNidFields(self, nid, onid, idnote=False):
         """Store original NID in a predefined field (if available)"""
         note = self.mw.col.getNote(nid)
         if BACKUP_FIELD in note and not note[BACKUP_FIELD]:
-            note[BACKUP_FIELD] = str(nid)
+            note[BACKUP_FIELD] = str(onid)
+        if idnote and NID_FIELD in note: # add nid to note id field
+            note["Note ID"] = str(nid)
         note.flush()
 
 
