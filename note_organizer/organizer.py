@@ -469,6 +469,9 @@ class Organizer(QDialog):
 
     def cleanup(self):
         remHook("reset", self.onReset)
+        self.browser.organizer = None
+        saveGeom(self, "organizer")
+        saveHeader(self.hh, "organizer")
 
 
     def reject(self):
@@ -479,9 +482,6 @@ class Organizer(QDialog):
             if not rej:
                 return
         self.cleanup()
-        self.browser.organizer = None
-        saveGeom(self, "organizer")
-        saveHeader(self.hh, "organizer")
         super(Organizer, self).reject()
 
 
@@ -527,12 +527,13 @@ class Organizer(QDialog):
                 return False
           
         start = self.getDate() # TODO: identify cases where only date modified
-
         repos = self.f.cbRepos.isChecked()
-        self.accept()
 
         rearranger = Rearranger(self.browser)
         rearranger.processNids(newnids, start, moved, repos)
+
+        self.cleanup()
+        super(Organizer, self).accept()
 
 
     def onReject(self):
