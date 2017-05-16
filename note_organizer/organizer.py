@@ -16,7 +16,7 @@ from anki.hooks import addHook, remHook
 from aqt.qt import *
 
 from aqt.utils import saveHeader, restoreHeader, saveGeom, \
-    restoreGeom, askUser, tooltip
+    restoreGeom, askUser, tooltip, askUser
 
 from .forms import organizer
 from .notetable import NoteTable
@@ -38,6 +38,7 @@ class Organizer(QDialog):
         self.f.tableLayout.addWidget(self.table)
         self.oldnids = []
         self.clipboard = []
+        self.modified = False
         self.setupUi()
         addHook("reset", self.onReset)
 
@@ -282,6 +283,7 @@ class Organizer(QDialog):
         item.setFont(font)
         item.setForeground(Qt.darkGreen)
         self.table.setItem(row, 0, item)
+        self.modified = True
 
 
     def onDuplicateNote(self, sched=False):
@@ -309,6 +311,7 @@ class Organizer(QDialog):
             else:
                 dupe = QTableWidgetItem(self.table.item(row, col))
             self.table.setItem(new_row, col, dupe)
+        self.modified = True
 
 
     def onRemoveNotes(self):
@@ -343,6 +346,7 @@ class Organizer(QDialog):
                 item.setForeground(Qt.darkRed)
         for row in to_remove[::-1]: # in reverse to avoid updating idxs
             self.table.removeRow(row)
+        self.modified = True
 
 
     def onCutRow(self):
@@ -519,11 +523,17 @@ class Organizer(QDialog):
           
         start = self.getDate() # TODO: identify cases where only date modified
 
-        self.close()
+        repos = self.f.cbRepos.isChecked()
+        self.accept()
 
         rearranger = Rearranger(self.browser)
-        rearranger.processNids(newnids, start, moved)
+        rearranger.processNids(newnids, start, moved, repos)
 
 
     def onReject(self):
+        if self.modified or self.table.moved:
+            rej = askUser("Close and lose current changes?",
+                title="Note Organizer")
+            if not rej:
+                return
         self.close()

@@ -12,7 +12,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 from anki.errors import AnkiError
 
 from aqt.utils import tooltip
-from anki.utils import intTime
+from anki.utils import intTime, ids2str
 from config import *
 from consts import *
 
@@ -25,7 +25,7 @@ class Rearranger:
         self.nid_map = {}
 
 
-    def processNids(self, nids, start, moved):
+    def processNids(self, nids, start, moved, repos=False):
         """Main function"""
         # Full database sync required:
         try:
@@ -37,7 +37,10 @@ class Rearranger:
         self.mw.checkpoint("Reorganize notes")
 
         nids, deleted, created = self.processActions(nids)
-        modified = self.rearrange(nids, start, moved, created)
+        modified, nidlist = self.rearrange(nids, start, moved, created)
+
+        if repos:
+            self.reposition(nidlist)
 
         self.mw.col.reset()
         self.mw.reset()
@@ -119,6 +122,7 @@ class Rearranger:
     def rearrange(self, nids, start, moved, created):
         """Adjust nid order"""
         modified = []
+        nidlist = []
         alterated = moved + created
         last = 0
 
@@ -145,6 +149,7 @@ class Rearranger:
                 else:
                     print("skipping")
                     last = nid
+                    nidlist.append(nid)
                     continue
 
             if last != 0:
@@ -154,6 +159,7 @@ class Rearranger:
             else:
                 print("skipping first nid")
                 last = nid # first nid, date unmodified
+                nidlist.append(nid)
                 continue
 
             print("modifying")
@@ -173,9 +179,10 @@ class Rearranger:
             self.nid_map[nid] = new_nid
             
             print("new_nid", new_nid)
+            nidlist.append(new_nid)
             last = new_nid
 
-        return modified
+        return modified, nidlist
 
 
     def addNote(self, sample_nid, ntype=None, sched=False):
@@ -239,7 +246,6 @@ class Rearranger:
 
         return new_note.id
 
-
     def copyCardScheduling(self, o, c):
         """Copy scheduling data over from original card"""
         self.mw.col.db.execute(
@@ -291,6 +297,14 @@ class Rearranger:
             note["Note ID"] = str(nid)
         note.flush()
 
+
+    def reposition(self, nidlist):
+        cids = self.mw.col.db.list(
+            "select id from cards where type = 0 and nid in " + ids2str(nidlist))
+        if not cids:
+            return
+        self.mw.col.sched.sortCards(
+            cids, start=0, step=1, shuffle=False, shift=True)
 
     def selectNotes(self, nids):
         """Select browser entries by note id"""
