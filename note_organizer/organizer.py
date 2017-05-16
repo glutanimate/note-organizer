@@ -473,6 +473,11 @@ class Organizer(QDialog):
 
     def reject(self):
         """Notify browser of close event"""
+        if self.modified or self.table.moved:
+            rej = askUser("Close and lose current changes?",
+                title="Note Organizer")
+            if not rej:
+                return
         self.cleanup()
         self.browser.organizer = None
         saveGeom(self, "organizer")
@@ -531,9 +536,4 @@ class Organizer(QDialog):
 
 
     def onReject(self):
-        if self.modified or self.table.moved:
-            rej = askUser("Close and lose current changes?",
-                title="Note Organizer")
-            if not rej:
-                return
         self.close()
