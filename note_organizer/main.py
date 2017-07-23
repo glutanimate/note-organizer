@@ -11,6 +11,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 
 from aqt.qt import *
 from aqt.browser import Browser
+from aqt.editor import Editor
 
 from anki.hooks import addHook, wrap
 
@@ -64,6 +65,19 @@ def setupMenu(self):
     a.triggered.connect(self.onReorganize)
 
 
+def onSetNote(self, note, hide=True, focus=False):
+    """Hide BACKUP_Field if configured"""
+    if not self.note or BACKUP_FIELD not in self.note:
+        return
+    model = self.note.model()
+    flds = self.mw.col.models.fieldNames(model)
+    idx = flds.index(BACKUP_FIELD)
+    self.web.eval("""
+        // hide last fname, field, and snowflake (FrozenFields add-on)
+            document.styleSheets[0].addRule(
+                'tr:nth-child({0}) .fname, #f{1}, #i{1}', 'display: none;');
+        """.format(idx*2+1, idx))
+
 # Hooks, etc.:
 
 addHook("browser.setupMenus", setupMenu)
@@ -73,3 +87,6 @@ Browser.organizer = None
 Browser.onRowChanged = wrap(Browser.onRowChanged, onBrowserRowChanged, "after")
 Browser.closeEvent = wrap(Browser.closeEvent, onBrowserClose, "before")
 Browser.deleteNotes = wrap(Browser.deleteNotes, onBrowserNoteDeleted, "around")
+
+if HIDE_BACKUP_FIELD:
+    Editor.setNote = wrap(Editor.setNote, onSetNote, "after")
