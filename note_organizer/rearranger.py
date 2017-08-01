@@ -26,7 +26,18 @@ class Rearranger:
 
 
     def processNids(self, nids, start, moved, repos=False):
-        """Main function"""
+        """
+        Main function
+
+        Arguments:
+
+        - nids:  list, unprocessed note IDs as strings,
+                 including potential action prefixes
+        - start: int, creation date of first note as UNIX timestamp
+        - moved: list, nids that were interactively moved by the user
+        - repos: boolean, whether to reposition due dates or not
+        """
+        
         # Full database sync required:
         try:
             self.mw.col.modSchema(check=True)
@@ -69,8 +80,10 @@ class Rearranger:
 
 
     def processActions(self, nids):
-        """Parse and execute actions in nid list (e.g. note creation)"""
-        """Also converts nids to ints"""
+        """
+        Parse and execute actions in nid list (e.g. note creation)
+        Also converts nids to ints
+        """
         processed = []
         deleted = []
         created = []
@@ -78,6 +91,7 @@ class Rearranger:
 
         for idx, nid in enumerate(nids):
             try:
+                # Regular NID, no action
                 processed.append(int(nid))
                 continue
             except ValueError:
@@ -86,11 +100,13 @@ class Rearranger:
             try:
                 nxt = int(nids[idx+1])
             except (IndexError, ValueError):
+                # last Index
                 nxt = None
 
             action = vals[0]
             data = vals[1:]
             if action == DEL_NOTE:
+                # Actions: Delete
                 nnid = int(data[0])
                 if not nnid or not self.noteExists(nnid):
                     continue
@@ -98,6 +114,7 @@ class Rearranger:
                 deleted.append(nnid)
                 continue
             elif action.startswith((NEW_NOTE, DUPE_NOTE)):
+                # Actions: New, Dupe, Dupe with Scheduling
                 sched = False
                 ntype = None
                 if action.startswith(DUPE_NOTE):
