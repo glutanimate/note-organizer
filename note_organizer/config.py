@@ -25,10 +25,13 @@ HOTKEY_PASTE = "Ctrl+V"
 
 # General
 
-REVIEWER_CONTEXT_MENU = True
-REVIEWER_OPEN_BROWSER = True
 ASK_CONFIRMATION = True
 DEFAULT_MODEL = "Basic"
+
+# Reviewer context actions
+
+REVIEWER_CONTEXT_MENU = True
+REVIEWER_OPEN_BROWSER = True
 
 # NID fields
 

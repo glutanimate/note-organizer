@@ -22,6 +22,7 @@ from .rearranger import Rearranger
 from .config import *
 from .consts import *
 
+
 ###### Browser
    
 def onBrowserRowChanged(self, current, previous):
@@ -67,6 +68,7 @@ def setupMenu(self):
     a = menu.addAction('Reorganize Notes...')
     a.setShortcut(QKeySequence(HOTKEY_ORGANIZER))
     a.triggered.connect(self.onReorganize)
+
 
 ###### Editor
 
@@ -137,11 +139,10 @@ def onReviewerOrgMenu(command, offset):
 
     if REVIEWER_OPEN_BROWSER:
         browser = aqt.dialogs.open("Browser", mw)
+        browser.form.searchEdit.lineEdit().setText("deck:current")
+        browser.onSearch()
         rearranger.selectNotes(browser, res)
 
-
-if REVIEWER_CONTEXT_MENU:
-    addHook("AnkiWebView.contextMenuEvent", addNoteOrganizerActions)
 
 # Hooks, etc.:
 
@@ -155,3 +156,6 @@ Browser.deleteNotes = wrap(Browser.deleteNotes, onBrowserNoteDeleted, "around")
 
 if HIDE_BACKUP_FIELD:
     Editor.setNote = wrap(Editor.setNote, onSetNote, "after")
+
+if REVIEWER_CONTEXT_MENU:
+    addHook("AnkiWebView.contextMenuEvent", addNoteOrganizerActions)

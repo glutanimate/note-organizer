@@ -280,6 +280,7 @@ class Rearranger:
 
         return new_note.id
 
+
     def copyCardScheduling(self, o, c):
         """Copy scheduling data over from original card"""
         self.mw.col.db.execute(
@@ -339,6 +340,7 @@ class Rearranger:
             return
         self.mw.col.sched.sortCards(
             cids, start=0, step=1, shuffle=False, shift=True)
+
 
     def selectNotes(self, browser, nids):
         """Select browser entries by note id"""
