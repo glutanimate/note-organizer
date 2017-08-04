@@ -10,6 +10,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 """
 
 from aqt.qt import *
+from aqt import mw
 from aqt.browser import Browser
 from aqt.editor import Editor
 
@@ -19,6 +20,7 @@ from .organizer import Organizer
 from .config import *
 from .consts import *
 
+###### Browser
    
 def onBrowserRowChanged(self, current, previous):
     """Sync row position to Organizer"""
@@ -64,6 +66,7 @@ def setupMenu(self):
     a.setShortcut(QKeySequence(HOTKEY_ORGANIZER))
     a.triggered.connect(self.onReorganize)
 
+###### Editor
 
 def onSetNote(self, note, hide=True, focus=False):
     """Hide BACKUP_Field if configured"""
@@ -77,6 +80,43 @@ def onSetNote(self, note, hide=True, focus=False):
             document.styleSheets[0].addRule(
                 'tr:nth-child({0}) .fname, #f{1}, #i{1}', 'display: none;');
         """.format(idx*2+1, idx))
+
+
+###### Reviewer
+
+menu_entries = [
+    {"label": "New Card - before", "cmd": NEW_NOTE, "offset": -1},
+    {"label": "New Card - after", "cmd": NEW_NOTE, "offset": 1},
+    {"label": "Duplicate Note - before", "cmd": DUPE_NOTE, "offset": -1},
+    {"label": "Duplicate Note - after", "cmd": DUPE_NOTE, "offset": 1},
+    {"label": "Duplicate note (with scheduling) - before",
+        "cmd": DUPE_NOTE_SCHED, "offset": -1},
+    {"label": "Duplicate note (with scheduling) - after",
+        "cmd": DUPE_NOTE_SCHED, "offset": 1},
+]
+
+def addNoteOrganizerActions(web, menu):
+    if mw.state != "review":
+        # only show menu in reviewer
+        return
+
+    org_menu = menu.addMenu('&New note...')
+    for entry in menu_entries:
+        cmd = entry["cmd"]
+        offset = entry["offset"] 
+        action = org_menu.addAction(entry["label"])
+        action.triggered.connect(
+            lambda _, c=cmd, o=offset: onReviewerOrgMenu(c, o))
+
+def onReviewerOrgMenu(command, offset):
+    note = mw.reviewer.card.note()
+    print(note, command, offset)
+    # rearranger = Rearranger(self.browser)
+    # rearranger.processNids(newnids, start, moved, repos)
+
+
+if REVIEWER_CONTEXT_MENU:
+    addHook("AnkiWebView.contextMenuEvent", addNoteOrganizerActions)
 
 # Hooks, etc.:
 
