@@ -529,8 +529,8 @@ class Organizer(QDialog):
         start = self.getDate() # TODO: identify cases where only date modified
         repos = self.f.cbRepos.isChecked()
 
-        rearranger = Rearranger(self.browser)
-        rearranger.processNids(newnids, start, moved, repos)
+        rearranger = Rearranger(browser=self.browser)
+        rearranger.processNids(newnids, start, moved, repos=repos)
 
         self.cleanup()
         super(Organizer, self).accept()

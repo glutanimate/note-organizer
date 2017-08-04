@@ -9,6 +9,7 @@ Copyright: (c) Glutanimate 2017
 License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.html
 """
 
+import aqt
 from aqt.qt import *
 from aqt import mw
 from aqt.browser import Browser
@@ -17,6 +18,7 @@ from aqt.editor import Editor
 from anki.hooks import addHook, wrap
 
 from .organizer import Organizer
+from .rearranger import Rearranger
 from .config import *
 from .consts import *
 
@@ -85,19 +87,20 @@ def onSetNote(self, note, hide=True, focus=False):
 ###### Reviewer
 
 menu_entries = [
-    {"label": "New Card - before", "cmd": NEW_NOTE, "offset": -1},
-    {"label": "New Card - after", "cmd": NEW_NOTE, "offset": 1},
-    {"label": "Duplicate Note - before", "cmd": DUPE_NOTE, "offset": -1},
+    {"label": "New Note - before", "cmd": NEW_NOTE, "offset": 0},
+    {"label": "New Note - after", "cmd": NEW_NOTE, "offset": 1},
+    {"label": "Duplicate Note - before", "cmd": DUPE_NOTE, "offset": 0},
     {"label": "Duplicate Note - after", "cmd": DUPE_NOTE, "offset": 1},
-    {"label": "Duplicate note (with scheduling) - before",
-        "cmd": DUPE_NOTE_SCHED, "offset": -1},
-    {"label": "Duplicate note (with scheduling) - after",
+    {"label": "Duplicate Note (with scheduling) - before",
+        "cmd": DUPE_NOTE_SCHED, "offset": 0},
+    {"label": "Duplicate Note (with scheduling) - after",
         "cmd": DUPE_NOTE_SCHED, "offset": 1},
 ]
 
+
 def addNoteOrganizerActions(web, menu):
-    if mw.state != "review":
-        # only show menu in reviewer
+    """Add Note Organizer actions to Reviewer Context Menu"""
+    if mw.state != "review": # only show menu in reviewer
         return
 
     org_menu = menu.addMenu('&New note...')
@@ -108,11 +111,33 @@ def addNoteOrganizerActions(web, menu):
         action.triggered.connect(
             lambda _, c=cmd, o=offset: onReviewerOrgMenu(c, o))
 
+
 def onReviewerOrgMenu(command, offset):
-    note = mw.reviewer.card.note()
-    print(note, command, offset)
-    # rearranger = Rearranger(self.browser)
-    # rearranger.processNids(newnids, start, moved, repos)
+    """Invoke Rearranger from Reviewer to create new notes"""
+    card = mw.reviewer.card
+    note = card.note()
+    nid = note.id
+
+    pool = mw.col.findNotes("deck:current")
+    pool.sort()
+    idx = pool.index(nid)
+    if command.startswith(NEW_NOTE):
+        data = MODEL_SAME
+    else:
+        data = str(nid)
+    composite = command + ": " + data
+    pool.insert(idx + offset, composite)
+    
+    start = None
+    moved = []
+
+    print(pool, start, moved)
+    rearranger = Rearranger(card=card)
+    res = rearranger.processNids(pool, start, moved)
+
+    if REVIEWER_OPEN_BROWSER:
+        browser = aqt.dialogs.open("Browser", mw)
+        rearranger.selectNotes(browser, res)
 
 
 if REVIEWER_CONTEXT_MENU:
