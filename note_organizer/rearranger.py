@@ -11,6 +11,7 @@ License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.
 
 from anki.errors import AnkiError
 
+from aqt import mw
 from aqt.utils import tooltip
 from anki.utils import intTime, ids2str
 from config import *
@@ -19,9 +20,9 @@ from consts import *
 class Rearranger:
     """Performs the actual database reorganization"""
 
-    def __init__(self, browser):
+    def __init__(self, browser=None):
         self.browser = browser
-        self.mw = self.browser.mw
+        self.mw = mw
         self.nid_map = {}
 
 
@@ -55,7 +56,7 @@ class Rearranger:
 
         self.mw.col.reset()
         self.mw.reset()
-        self.selectNotes(moved + created)
+
         tooltip(u"Reorganization complete:<br>"
             u"<b>{}</b> note(s) <b>moved</b><br>"
             u"<b>{}</b> note(s) <b>deleted</b><br>"
@@ -64,6 +65,12 @@ class Rearranger:
                 len(moved), len(deleted), len(created), 
                 len(modified)-len(moved)),
             parent=self.browser)
+
+        to_select = moved + created
+        if self.browser:
+            self.selectNotes(to_select)
+
+        return(to_select)
 
 
     def findSample(self, nids):
@@ -214,10 +221,11 @@ class Rearranger:
             # invalid state: note has no cards
             return None
         # try to use visible card if available
-        for cid in cids:
-            if cid in self.browser.model.cards:
-                sample_cid = cid
-                break
+        if self.browser:
+            for cid in cids:
+                if cid in self.browser.model.cards:
+                    sample_cid = cid
+                    break
         
         # gather model/deck information
         sample_card = self.mw.col.getCard(sample_cid)
