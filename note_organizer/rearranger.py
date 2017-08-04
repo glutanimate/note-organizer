@@ -20,9 +20,10 @@ from consts import *
 class Rearranger:
     """Performs the actual database reorganization"""
 
-    def __init__(self, browser=None):
+    def __init__(self, browser=None, card=None):
         self.browser = browser
         self.mw = mw
+        self.card = card
         self.nid_map = {}
 
 
@@ -68,7 +69,7 @@ class Rearranger:
 
         to_select = moved + created
         if self.browser:
-            self.selectNotes(to_select)
+            self.selectNotes(self.browser, to_select)
 
         return(to_select)
 
@@ -90,6 +91,8 @@ class Rearranger:
         """
         Parse and execute actions in nid list (e.g. note creation)
         Also converts nids to ints
+        TODO: Find a more elegant solution to pass commands from
+              the Organizer to the Rearranger
         """
         processed = []
         deleted = []
@@ -213,22 +216,28 @@ class Rearranger:
         """Create new note based on sample nid"""
         sample_nid = self.nid_map.get(sample_nid, sample_nid)
         sample = self.mw.col.getNote(sample_nid)
-        cids = self.mw.col.db.list(
-                "select id from cards where nid = ? order by ord", sample_nid)
-        try:
-            sample_cid = cids[0]
-        except IndexError:
-            # invalid state: note has no cards
-            return None
-        # try to use visible card if available
-        if self.browser:
-            for cid in cids:
-                if cid in self.browser.model.cards:
-                    sample_cid = cid
-                    break
+        
+        if not self.card:
+            cids = self.mw.col.db.list(
+                    "select id from cards where nid = ? order by ord", sample_nid)
+            try:
+                sample_cid = cids[0]
+            except IndexError:
+                # invalid state: note has no cards
+                return None
+            
+            # try to use visible card if available
+            if self.browser:
+                for cid in cids:
+                    if cid in self.browser.model.cards:
+                        sample_cid = cid
+                        break
+            
+            sample_card = self.mw.col.getCard(sample_cid)
+        else:
+            sample_card = self.card
         
         # gather model/deck information
-        sample_card = self.mw.col.getCard(sample_cid)
         sample_did = sample_card.odid or sample_card.did # account for dyn decks
         sample_deck = self.mw.col.decks.get(sample_did)
 
@@ -331,13 +340,13 @@ class Rearranger:
         self.mw.col.sched.sortCards(
             cids, start=0, step=1, shuffle=False, shift=True)
 
-    def selectNotes(self, nids):
+    def selectNotes(self, browser, nids):
         """Select browser entries by note id"""
-        self.browser.form.tableView.selectionModel().clear()
+        browser.form.tableView.selectionModel().clear()
         cids = []
         for nid in nids:
             nid = self.nid_map.get(nid, nid)
             cids += self.mw.col.db.list(
                 "select id from cards where nid = ? order by ord", nid)
-        self.browser.model.selectedCards = {cid: True for cid in cids}
-        self.browser.model.restoreSelection()
+        browser.model.selectedCards = {cid: True for cid in cids}
+        browser.model.restoreSelection()
