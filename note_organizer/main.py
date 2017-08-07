@@ -9,6 +9,8 @@ Copyright: (c) Glutanimate 2017
 License: GNU AGPL, version 3 or later; https://www.gnu.org/licenses/agpl-3.0.en.html
 """
 
+from __future__ import unicode_literals
+
 import aqt
 from aqt.qt import *
 from aqt import mw
@@ -89,13 +91,13 @@ def onSetNote(self, note, hide=True, focus=False):
 ###### Reviewer
 
 menu_entries = [
-    {"label": "New Note - before", "cmd": NEW_NOTE, "offset": 0},
-    {"label": "New Note - after", "cmd": NEW_NOTE, "offset": 1},
-    {"label": "Duplicate Note - before", "cmd": DUPE_NOTE, "offset": 0},
-    {"label": "Duplicate Note - after", "cmd": DUPE_NOTE, "offset": 1},
-    {"label": "Duplicate Note (with scheduling) - before",
+    {"label": "New Note - &before", "cmd": NEW_NOTE, "offset": 0},
+    {"label": "&New Note - after", "cmd": NEW_NOTE, "offset": 1},
+    {"label": "D&uplicate Note - before", "cmd": DUPE_NOTE, "offset": 0},
+    {"label": "&Duplicate Note - after", "cmd": DUPE_NOTE, "offset": 1},
+    {"label": "Duplicate Note (with s&cheduling) - before",
         "cmd": DUPE_NOTE_SCHED, "offset": 0},
-    {"label": "Duplicate Note (with scheduling) - after",
+    {"label": "Duplicate Note (with &scheduling) - after",
         "cmd": DUPE_NOTE_SCHED, "offset": 1},
 ]
 
@@ -105,6 +107,7 @@ def addNoteOrganizerActions(web, menu):
     if mw.state != "review": # only show menu in reviewer
         return
 
+    menu.addSeparator()
     org_menu = menu.addMenu('&New note...')
     for entry in menu_entries:
         cmd = entry["cmd"]
@@ -117,29 +120,38 @@ def addNoteOrganizerActions(web, menu):
 def onReviewerOrgMenu(command, offset):
     """Invoke Rearranger from Reviewer to create new notes"""
     card = mw.reviewer.card
+    did = card.odid or card.did # account for dyn decks
+    deck = mw.col.decks.nameOrNone(did)
     note = card.note()
     nid = note.id
-
-    pool = mw.col.findNotes("deck:current")
-    pool.sort()
-    idx = pool.index(nid)
+    
+    # rearrange in context of origin deck
+    search = "deck:'{}'".format(deck)
+    note_pool = mw.col.findNotes(search)
+    note_pool.sort()
+    try:
+        idx = note_pool.index(nid)
+    except ValueError: # nid not in deck
+        return False
+    
+    # construct command string that imitates Organizer GUI output
     if command.startswith(NEW_NOTE):
         data = MODEL_SAME
     else:
         data = str(nid)
     composite = command + ": " + data
-    pool.insert(idx + offset, composite)
+    note_pool.insert(idx + offset, composite)
     
     start = None
     moved = []
 
-    print(pool, start, moved)
     rearranger = Rearranger(card=card)
-    res = rearranger.processNids(pool, start, moved)
+    res = rearranger.processNids(note_pool, start, moved)
 
+    # display result in browser
     if REVIEWER_OPEN_BROWSER:
         browser = aqt.dialogs.open("Browser", mw)
-        browser.form.searchEdit.lineEdit().setText("deck:current")
+        browser.form.searchEdit.lineEdit().setText(search)
         browser.onSearch()
         rearranger.selectNotes(browser, res)
 
