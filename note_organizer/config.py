@@ -25,7 +25,11 @@ HOTKEY_PASTE = "Ctrl+V"
 
 # General
 
+# Ask confirmation before performing actions
 ASK_CONFIRMATION = True
+# Display warning when invoking on more than x cards
+CARD_COUNT_WARNING = 2000
+# Default note type of created notes
 DEFAULT_MODEL = "Basic"
 
 # Reviewer context actions

@@ -16,6 +16,7 @@ from aqt.qt import *
 from aqt import mw
 from aqt.browser import Browser
 from aqt.editor import Editor
+from aqt.utils import askUser
 
 from anki.hooks import addHook, wrap
 
@@ -56,6 +57,19 @@ def onReorganize(self):
     if self.organizer:
         self.organizer.show()
         return
+    
+    sel = self.selectedCards()
+    if sel and len(sel) > 1:
+        count = len(sel)
+    else:
+        count = len(self.model.cards)
+    if CARD_COUNT_WARNING and count > CARD_COUNT_WARNING:
+        ret = askUser("Are you sure you want to invoke Note Organizer "
+            "on {} cards? This might take a while".format(count),
+            title="Note Organizer")
+        if not ret:
+            return False
+    
     self.organizer = Organizer(self)
     self.organizer.show()
 
